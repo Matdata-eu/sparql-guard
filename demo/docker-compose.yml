@@ -1,0 +1,60 @@
+# Public demo of sparql-guard: the railway example data behind the proxy.
+#
+#   cd demo
+#   docker compose up -d --build
+#
+#   http://localhost:8096/sparql   the guarded endpoint (put this behind your reverse proxy,
+#                                  e.g. as https://sparql-guard.matdata.eu/sparql)
+#   http://localhost:8097          the demo page, pointing at the local endpoint
+#
+# The demo users authenticate with API keys that are published on the demo page. That is
+# intended: everybody may try every role. The data is fictional and the store is read-only
+# and not reachable from outside the compose network.
+
+name: sparql-guard-demo
+
+services:
+  # Loads the example data into a fresh Oxigraph database, then exits.
+  store-load:
+    image: ghcr.io/oxigraph/oxigraph:0.5.9
+    command: ["load", "--location", "/db", "--file", "/seed/data.trig"]
+    volumes:
+      - store-db:/db
+      - ../examples/railway/data.trig:/seed/data.trig:ro
+
+  store:
+    image: ghcr.io/oxigraph/oxigraph:0.5.9
+    # No --union-default-graph: with it, Oxigraph ignores FROM, which sparql-guard relies on.
+    command: ["serve-read-only", "--location", "/db", "--bind", "0.0.0.0:7878"]
+    volumes:
+      - store-db:/db
+    restart: unless-stopped
+    depends_on:
+      store-load:
+        condition: service_completed_successfully
+
+  guard:
+    build: ..
+    environment:
+      SPARQL_GUARD_CONFIG: /config/sparql-guard.json
+    volumes:
+      - ./sparql-guard.json:/config/sparql-guard.json:ro
+      - ../examples/railway/policies.ttl:/config/policies.ttl:ro
+    ports:
+      - "${SG_DEMO_PORT:-8096}:8080"
+    restart: unless-stopped
+    depends_on:
+      - store
+
+  # The static demo page, for trying it locally. The published copy lives on GitHub Pages.
+  page:
+    image: nginx:1.27-alpine
+    ports:
+      - "${SG_DEMO_PAGE_PORT:-8097}:80"
+    volumes:
+      - ./page/index.html:/usr/share/nginx/html/index.html:ro
+      - ../examples/railway/data.trig:/usr/share/nginx/html/data.trig:ro
+      - ../examples/railway/policies.ttl:/usr/share/nginx/html/policies.ttl:ro
+
+volumes:
+  store-db:

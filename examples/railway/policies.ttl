@@ -1,5 +1,6 @@
-# Access roles for the railway playground. Edit this file while the compose stack runs:
-# the proxy reloads it within a few seconds (a broken file keeps the previous version active).
+# Access roles for the railway example, used by the playground and the online demo.
+# In the playground, edits are picked up while the stack runs (a broken file keeps the
+# previous version active).
 
 @prefix sg:  <https://matdata.eu/ns/sparql-guard#> .
 @prefix sh:  <http://www.w3.org/ns/shacl#> .

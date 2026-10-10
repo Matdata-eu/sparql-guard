@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sparql-guard demo</title>
+  <meta name="description" content="Pick a user, run a SPARQL query, and see how sparql-guard answers it with only what that user may see.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 8 13v17c0 15 10 26 24 30 14-4 24-15 24-30V13L32 4z' fill='%23b3261e'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #f5f6f8; --panel: #ffffff; --text: #1c2230; --muted: #5b6475; --border: #dde1e8;
+      --accent: #b3261e; --accent-text: #ffffff; --accent-soft: #fbeceb; --code-bg: #f1f3f6;
+      --ok: #1e7b45; --warn: #9a5b00; --row-alt: #fafbfc;
+      --tk-comment: #6b7280; --tk-keyword: #a3311b; --tk-string: #1e7b45; --tk-iri: #2056a8; --tk-var: #7a3fb0; --tk-punct: #4b5563;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #15181e; --panel: #1d2129; --text: #e6e8ec; --muted: #9aa3b2; --border: #313744;
+        --accent: #e5554b; --accent-text: #ffffff; --accent-soft: #3a2220; --code-bg: #161a20;
+        --ok: #5bc48a; --warn: #e0a84a; --row-alt: #20252e;
+        --tk-comment: #8590a2; --tk-keyword: #f0806f; --tk-string: #7fd3a0; --tk-iri: #84b1ff; --tk-var: #c99bf0; --tk-punct: #aab2c0;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #15181e; --panel: #1d2129; --text: #e6e8ec; --muted: #9aa3b2; --border: #313744;
+      --accent: #e5554b; --accent-text: #ffffff; --accent-soft: #3a2220; --code-bg: #161a20;
+      --ok: #5bc48a; --warn: #e0a84a; --row-alt: #20252e;
+      --tk-comment: #8590a2; --tk-keyword: #f0806f; --tk-string: #7fd3a0; --tk-iri: #84b1ff; --tk-var: #c99bf0; --tk-punct: #aab2c0;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body { background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    a { color: var(--accent); }
+    code, pre, textarea { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; font-size: 13px; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
+
+    header { background: var(--panel); border-bottom: 1px solid var(--border); }
+    header .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: center; justify-content: space-between; padding-top: 16px; padding-bottom: 16px; }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand svg { width: 36px; height: 36px; flex: none; }
+    h1 { font-size: 20px; margin: 0; }
+    .tagline { margin: 0; color: var(--muted); font-size: 14px; }
+    .endpoint { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+    .endpoint input { width: min(360px, 60vw); }
+
+    main { padding: 20px 0 48px; }
+    .grid { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+    @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .panel + .panel { margin-top: 20px; }
+    h2 { font-size: 15px; margin: 0 0 12px; display: flex; gap: 8px; align-items: center; }
+    h2 .step { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-size: 12px; }
+
+    .users { display: grid; gap: 8px; }
+    .user { display: grid; grid-template-columns: auto 1fr; gap: 0 10px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--panel); text-align: left; color: inherit; font: inherit; }
+    .user:hover { border-color: var(--muted); }
+    .user[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+    .user .avatar { grid-row: span 2; align-self: center; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: 13px; background: var(--code-bg); border: 1px solid var(--border); }
+    .user .name { font-weight: 600; }
+    .user .sees { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+    .user .key { font-weight: 400; font-size: 11.5px; color: var(--muted); margin-left: 6px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+    select, input, textarea, button { font: inherit; color: var(--text); }
+    select, input { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); }
+    select { width: 100%; }
+    textarea { width: 100%; min-height: 220px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--code-bg); resize: vertical; line-height: 1.45; tab-size: 2; }
+    .query-desc { color: var(--muted); font-size: 13px; margin: 8px 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    button.btn { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); cursor: pointer; }
+    button.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+    button.btn:disabled { opacity: .6; cursor: progress; }
+
+    .status { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 12px; min-height: 22px; }
+    .chip { display: inline-block; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; background: var(--code-bg); }
+    .chip.ok { color: var(--ok); }
+    .chip.err { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+    .table-wrap { overflow: auto; max-height: 520px; border: 1px solid var(--border); border-radius: 8px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { position: sticky; top: 0; background: var(--panel); font-weight: 600; }
+    tbody tr:nth-child(even) td { background: var(--row-alt); }
+    td.empty { color: var(--muted); font-style: italic; }
+    .iri { color: var(--tk-iri); word-break: break-all; }
+    .lit { color: var(--tk-string); }
+    .placeholder { color: var(--muted); padding: 24px; text-align: center; border: 1px dashed var(--border); border-radius: 8px; }
+    .error { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; white-space: pre-wrap; }
+
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: -4px 0 12px; overflow-x: auto; }
+    .tab { padding: 8px 12px; border: 0; border-bottom: 2px solid transparent; background: none; cursor: pointer; color: var(--muted); white-space: nowrap; }
+    .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+    .tab-hint { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+    pre.code { margin: 0; padding: 12px 14px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; overflow: auto; max-height: 560px; line-height: 1.45; }
+    .compare td:nth-child(2), .compare th:nth-child(2) { text-align: right; }
+
+    .token.comment { color: var(--tk-comment); font-style: italic; }
+    .token.keyword, .token.boolean { color: var(--tk-keyword); }
+    .token.string, .token.number, .token.literal-value { color: var(--tk-string); }
+    .token.url, .token.prefixed-name, .token.function { color: var(--tk-iri); }
+    .token.variable { color: var(--tk-var); }
+    .token.punctuation, .token.operator { color: var(--tk-punct); }
+
+    footer { color: var(--muted); font-size: 13px; padding: 0 0 32px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4 8 13v17c0 15 10 26 24 30 14-4 24-15 24-30V13L32 4z" fill="#b3261e"/><circle cx="24" cy="28" r="4" fill="#fff"/><circle cx="40" cy="22" r="4" fill="#fff"/><circle cx="38" cy="40" r="4" fill="#fff"/><path d="M24 28 40 22M24 28l14 12M40 22l-2 18" stroke="#fff" stroke-width="2.5"/></svg>
+        <div>
+          <h1>sparql-guard demo</h1>
+          <p class="tagline">One railway dataset, six users. Run the same query as each of them and see what the access policies let through.</p>
+        </div>
+      </div>
+      <label class="endpoint">Endpoint <input id="endpoint" spellcheck="false" aria-label="Guarded SPARQL endpoint"></label>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap grid">
+      <div>
+        <section class="panel">
+          <h2><span class="step">1</span> Choose a user</h2>
+          <div class="users" id="users" role="group" aria-label="Users"></div>
+        </section>
+        <section class="panel">
+          <h2><span class="step">2</span> Choose a query</h2>
+          <select id="query-select" aria-label="Example queries"></select>
+          <p class="query-desc" id="query-desc"></p>
+          <textarea id="query" spellcheck="false" aria-label="SPARQL query"></textarea>
+          <div class="actions">
+            <button class="btn primary" id="run">Run as <span id="run-user"></span></button>
+            <button class="btn" id="compare">Compare all users</button>
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <section class="panel">
+          <h2><span class="step">3</span> Result</h2>
+          <div class="status" id="status"></div>
+          <div id="result"><div class="placeholder">Pick a user and a query, then press Run.</div></div>
+        </section>
+
+        <section class="panel">
+          <div class="tabs" role="tablist">
+            <button class="tab" role="tab" aria-selected="true" data-tab="rewritten">Rewritten query</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="policies">Policies</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="data">Complete data</button>
+          </div>
+          <div data-panel="rewritten">
+            <p class="tab-hint">What sparql-guard actually sends to the triple store for this user: the dataset is restricted to the user's graphs and every pattern gets a filter derived from the SHACL policies.</p>
+            <pre class="code"><code class="language-sparql" id="rewritten">Run a query to see how it is rewritten.</code></pre>
+          </div>
+          <div data-panel="policies" hidden>
+            <p class="tab-hint">The access policies, in RDF with SHACL shapes. <span id="policy-hint"></span></p>
+            <pre class="code"><code class="language-turtle" id="policies">Loading…</code></pre>
+          </div>
+          <div data-panel="data" hidden>
+            <p class="tab-hint">Everything in the store, as the administrator sees it. Other users only see parts of it.</p>
+            <pre class="code"><code class="language-turtle" id="data">Loading…</code></pre>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      sparql-guard is a store-neutral access-control proxy for SPARQL endpoints.
+      <a href="../">Documentation</a> · <a href="https://github.com/Matdata-eu/sparql-guard">Source</a>.
+      The data is fictional. The demo users' API keys are public on purpose.
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" data-manual></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-turtle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sparql.min.js"></script>
+  <script>
+    const PUBLIC_ENDPOINT = 'https://sparql-guard.matdata.eu/sparql';
+    const LOCAL_ENDPOINT = 'http://localhost:8096/sparql';
+
+    const USERS = [
+      { id: 'visitor', name: 'Visitor', initials: '?', key: null, policies: ['public'],
+        sees: 'Not signed in. The public network only.' },
+      { id: 'acme', name: 'ACME Rail dispatcher', initials: 'AR', key: 'acme-key', policies: ['public', 'operator-acme'],
+        sees: 'Network and timetable, but only ACME’s own trains.' },
+      { id: 'jan', name: 'Jan, maintenance north', initials: 'JP', key: 'jan-key', policies: ['public', 'maintenance-north'],
+        sees: 'Assets, work orders and staff of the north region, plus his own record. No salary scales.' },
+      { id: 'els', name: 'Els, maintenance south', initials: 'ED', key: 'els-key', policies: ['public', 'maintenance-south'],
+        sees: 'The same, for the south region.' },
+      { id: 'safety', name: 'Safety analyst', initials: 'SA', key: 'safety-key', policies: ['public', 'safety'],
+        sees: 'Incidents, assets, timetable. No driver identities or statements, no cabinet access codes.' },
+      { id: 'admin', name: 'Administrator', initials: 'AD', key: 'admin-key', policies: ['public', 'admin'],
+        sees: 'Everything.' },
+    ];
+
+    const PREFIXES = `PREFIX rv: <https://example.org/rail/vocab#>
+PREFIX rd: <https://example.org/rail/data/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+`;
+
+    const QUERIES = [
+      { title: 'Which graphs can I read, and how big are they?',
+        desc: 'Counts triples per named graph. Each user gets a different set of graphs, and row-level rules shrink some of them further.',
+        query: `SELECT ?graph (COUNT(*) AS ?triples) WHERE {
+  GRAPH ?graph { ?s ?p ?o }
+}
+GROUP BY ?graph
+ORDER BY ?graph` },
+      { title: 'Work orders and their cost',
+        desc: 'Maintenance teams only see work orders of their own region.',
+        query: `SELECT ?order ?label ?status ?assignee ?cost WHERE {
+  ?order a rv:WorkOrder ;
+    rdfs:label ?label ;
+    rv:status ?status ;
+    rv:costEstimateEur ?cost .
+  OPTIONAL { ?order rv:assignedTo/rdfs:label ?assignee }
+}
+ORDER BY DESC(?cost)` },
+      { title: 'Total maintenance budget',
+        desc: 'An aggregate: hidden work orders never enter the sum, so the total differs per user.',
+        query: `SELECT (SUM(?cost) AS ?total) (COUNT(?order) AS ?orders) WHERE {
+  ?order a rv:WorkOrder ;
+    rv:costEstimateEur ?cost .
+}` },
+      { title: 'Train paths',
+        desc: 'A railway undertaking only sees its own train paths.',
+        query: `SELECT ?train ?operator ?origin ?destination ?departure WHERE {
+  ?path a rv:TrainPath ;
+    rv:trainNumber ?train ;
+    rv:operatedBy/rdfs:label ?operator ;
+    rv:origin/rdfs:label ?origin ;
+    rv:destination/rdfs:label ?destination ;
+    rv:departure ?departure .
+}
+ORDER BY ?departure` },
+      { title: 'Incidents and the drivers involved',
+        desc: 'Safety analysts see incidents, but the driver and their statement are hidden properties.',
+        query: `SELECT ?incident ?severity ?driver ?statement WHERE {
+  ?incident a rv:Incident ;
+    rdfs:label ?incident_label ;
+    rv:severity ?severity .
+  OPTIONAL { ?incident rv:involvedDriver/rdfs:label ?driver }
+  OPTIONAL { ?incident rv:driverStatement ?statement }
+}
+ORDER BY DESC(?severity)` },
+      { title: 'Staff and salary scales',
+        desc: 'Maintenance staff see their own team and themselves, but no salary scales.',
+        query: `SELECT ?name ?role ?team ?salaryScale WHERE {
+  ?person a rv:Staff ;
+    rdfs:label ?name ;
+    rv:role ?role ;
+    rv:team/rdfs:label ?team .
+  OPTIONAL { ?person rv:salaryScale ?salaryScale }
+}
+ORDER BY ?name` },
+      { title: 'Who confirmed what (SPARQL 1.2)',
+        desc: 'RDF 1.2 annotations on incident statements. A triple term is only visible when the triple inside it is.',
+        query: `SELECT ?subject ?property ?value ?confirmedBy WHERE {
+  ?claim rdf:reifies ?triple ;
+    rv:confirmedBy/rdfs:label ?confirmedBy .
+  BIND(SUBJECT(?triple) AS ?subject)
+  BIND(PREDICATE(?triple) AS ?property)
+  BIND(OBJECT(?triple) AS ?value)
+}` },
+      { title: 'Everything about level crossing 50/12',
+        desc: 'DESCRIBE is rewritten into a CONSTRUCT of the visible triples, so the cabinet code does not leak.',
+        query: `DESCRIBE rd:lc-50-12` },
+      { title: 'A query that is refused',
+        desc: 'Federated queries would escape the policies, so SERVICE is refused for everyone.',
+        query: `SELECT * WHERE {
+  SERVICE <https://query.wikidata.org/sparql> { ?s ?p ?o }
+}
+LIMIT 1` },
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const state = { user: USERS[0], running: false };
+
+    // ---------- endpoint ----------
+    const params = new URLSearchParams(location.search);
+    const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    $('endpoint').value = params.get('endpoint') || (isLocal ? LOCAL_ENDPOINT : PUBLIC_ENDPOINT);
+    const endpoint = () => $('endpoint').value.trim().replace(/\/$/, '');
+
+    // ---------- users ----------
+    for (const user of USERS) {
+      const button = document.createElement('button');
+      button.className = 'user';
+      button.type = 'button';
+      button.dataset.id = user.id;
+      button.innerHTML = `<span class="avatar">${user.initials}</span><span class="name"><span class="label"></span><span class="key"></span></span><span class="sees"></span>`;
+      button.querySelector('.label').textContent = user.name;
+      button.querySelector('.sees').textContent = user.sees;
+      button.querySelector('.key').textContent = user.key ? `key: ${user.key}` : 'no credentials';
+      button.addEventListener('click', () => selectUser(user));
+      $('users').appendChild(button);
+    }
+
+    function selectUser(user) {
+      state.user = user;
+      for (const b of $('users').children) b.setAttribute('aria-pressed', String(b.dataset.id === user.id));
+      $('run-user').textContent = user.name.split(',')[0];
+      $('policy-hint').textContent = `${user.name} matches: ${user.policies.map(p => `pol:${p}`).join(', ')}.`;
+    }
+
+    // ---------- queries ----------
+    QUERIES.forEach((q, i) => $('query-select').add(new Option(q.title, String(i))));
+    function selectQuery(i) {
+      const q = QUERIES[i];
+      $('query').value = `${PREFIXES}\n${q.query}`;
+      $('query-desc').textContent = q.desc;
+    }
+    $('query-select').addEventListener('change', (e) => selectQuery(Number(e.target.value)));
+
+    // ---------- requests ----------
+    function headers(user, accept) {
+      const h = { 'content-type': 'application/sparql-query', accept };
+      if (user.key) h.authorization = `Bearer ${user.key}`;
+      return h;
+    }
+
+    async function runQuery(user, query) {
+      const isGraph = /^\s*(PREFIX[^\n]*\n\s*)*(CONSTRUCT|DESCRIBE)\b/i.test(query.replace(/#[^\n]*/g, ''));
+      const res = await fetch(endpoint(), {
+        method: 'POST',
+        headers: headers(user, isGraph ? 'text/turtle' : 'application/sparql-results+json'),
+        body: query,
+      });
+      const text = await res.text();
+      if (!res.ok) return { ok: false, status: res.status, text };
+      if (isGraph) return { ok: true, kind: 'graph', text };
+      return { ok: true, kind: 'results', json: JSON.parse(text) };
+    }
+
+    async function explain(user, query) {
+      const res = await fetch(`${endpoint()}/explain`, { method: 'POST', headers: headers(user, 'application/json'), body: query });
+      const text = await res.text();
+      return res.ok ? JSON.parse(text) : { error: `${res.status}: ${text.trim()}` };
+    }
+
+    // ---------- rendering ----------
+    const SHORT = [
+      ['https://example.org/rail/data/', 'rd:'], ['https://example.org/rail/vocab#', 'rv:'],
+      ['https://example.org/rail/graph/', 'graph:'], ['https://example.org/rail/policy/', 'pol:'],
+      ['http://www.w3.org/1999/02/22-rdf-syntax-ns#', 'rdf:'], ['http://www.w3.org/2000/01/rdf-schema#', 'rdfs:'],
+    ];
+    const shorten = (iri) => { for (const [ns, p] of SHORT) if (iri.startsWith(ns)) return p + iri.slice(ns.length); return `<${iri}>`; };
+
+    function cell(term) {
+      const td = document.createElement('td');
+      if (!term) { td.className = 'empty'; td.textContent = 'not visible / unbound'; return td; }
+      if (term.type === 'uri') { td.className = 'iri'; td.textContent = shorten(term.value); td.title = term.value; }
+      else if (term.type === 'triple') { td.className = 'iri'; const t = term.value; td.textContent = `<<( ${[t.subject, t.predicate, t.object].map(x => x.type === 'uri' ? shorten(x.value) : JSON.stringify(x.value)).join(' ')} )>>`; }
+      else if (term.type === 'bnode') { td.textContent = `_:${term.value}`; }
+      else { td.className = 'lit'; td.textContent = term.value; }
+      return td;
+    }
+
+    function renderResults(json) {
+      if (typeof json.boolean === 'boolean') return textBlock(`ASK: ${json.boolean}`);
+      const vars = json.head.vars;
+      const rows = json.results.bindings;
+      if (rows.length === 0) {
+        const p = document.createElement('div'); p.className = 'placeholder';
+        p.textContent = 'No results: nothing this user may see matches the query.';
+        return p;
+      }
+      const wrap = document.createElement('div'); wrap.className = 'table-wrap';
+      const table = document.createElement('table');
+      const head = table.createTHead().insertRow();
+      for (const v of vars) { const th = document.createElement('th'); th.textContent = v; head.appendChild(th); }
+      const body = table.createTBody();
+      for (const row of rows) { const tr = body.insertRow(); for (const v of vars) tr.appendChild(cell(row[v])); }
+      wrap.appendChild(table);
+      return wrap;
+    }
+
+    function textBlock(text, language) {
+      const pre = document.createElement('pre'); pre.className = 'code';
+      const code = document.createElement('code');
+      if (language) code.className = `language-${language}`;
+      code.textContent = text;
+      pre.appendChild(code);
+      if (language && window.Prism) Prism.highlightElement(code);
+      return pre;
+    }
+
+    function setStatus(parts) {
+      $('status').replaceChildren(...parts.map(([text, kind]) => {
+        const s = document.createElement('span'); s.className = `chip ${kind ?? ''}`; s.textContent = text; return s;
+      }));
+    }
+
+    function showRewritten(info) {
+      const code = $('rewritten');
+      code.textContent = info.error ? `# ${info.error}` :
+        `# agent:    ${info.agent ?? 'anonymous'}\n# groups:   ${info.groups.join(', ') || '-'}\n# policies: ${info.policies.map(p => shorten(p.replace(/^<|>$/g, ''))).join(', ')}\n\n${info.query}`;
+      if (window.Prism) Prism.highlightElement(code);
+    }
+
+    function networkError(error) {
+      const div = document.createElement('div'); div.className = 'error';
+      div.textContent = `Could not reach ${endpoint()}.\n${error.message}\n\nIs the demo endpoint running? Locally: cd demo && docker compose up -d --build`;
+      return div;
+    }
+
+    // ---------- actions ----------
+    async function busy(fn) {
+      if (state.running) return;
+      state.running = true;
+      $('run').disabled = $('compare').disabled = true;
+      try { await fn(); } finally { state.running = false; $('run').disabled = $('compare').disabled = false; }
+    }
+
+    $('run').addEventListener('click', () => busy(async () => {
+      const user = state.user; const query = $('query').value;
+      setStatus([[`Running as ${user.name}…`]]);
+      const started = performance.now();
+      try {
+        const [result, info] = await Promise.all([runQuery(user, query), explain(user, query)]);
+        const ms = Math.round(performance.now() - started);
+        showRewritten(info);
+        if (!result.ok) {
+          setStatus([[user.name], [`${result.status}`, 'err']]);
+          const div = document.createElement('div'); div.className = 'error';
+          div.textContent = result.text.trim();
+          $('result').replaceChildren(div);
+          return;
+        }
+        if (result.kind === 'graph') {
+          const triples = result.text.split('\n').filter(l => /[.;,]\s*$/.test(l)).length;
+          setStatus([[user.name], [`${triples} lines of Turtle`, 'ok'], [`${ms} ms`]]);
+          $('result').replaceChildren(textBlock(result.text.trim() || '# (no visible triples)', 'turtle'));
+        } else {
+          const n = result.json.results ? result.json.results.bindings.length : 1;
+          setStatus([[user.name], [`${n} row${n === 1 ? '' : 's'}`, 'ok'], [`${ms} ms`]]);
+          $('result').replaceChildren(renderResults(result.json));
+        }
+      } catch (error) {
+        setStatus([[user.name], ['network error', 'err']]);
+        $('result').replaceChildren(networkError(error));
+      }
+    }));
+
+    $('compare').addEventListener('click', () => busy(async () => {
+      const query = $('query').value;
+      setStatus([['Running for every user…']]);
+      try {
+        const results = await Promise.all(USERS.map(u => runQuery(u, query)));
+        const wrap = document.createElement('div'); wrap.className = 'table-wrap';
+        const table = document.createElement('table'); table.className = 'compare';
+        table.innerHTML = '<thead><tr><th>User</th><th>Answer</th><th>First row</th></tr></thead>';
+        const body = table.createTBody();
+        USERS.forEach((u, i) => {
+          const r = results[i]; const tr = body.insertRow();
+          const name = tr.insertCell(); name.textContent = u.name;
+          const count = tr.insertCell(); const first = tr.insertCell();
+          if (!r.ok) { count.innerHTML = `<span class="chip err">${r.status}</span>`; first.textContent = r.text.trim(); return; }
+          if (r.kind === 'graph') { count.textContent = `${r.text.split('\n').filter(l => /[.;,]\s*$/.test(l)).length} lines of Turtle`; first.textContent = ''; return; }
+          if (typeof r.json.boolean === 'boolean') { count.textContent = String(r.json.boolean); return; }
+          const rows = r.json.results.bindings;
+          count.textContent = `${rows.length} row${rows.length === 1 ? '' : 's'}`;
+          first.textContent = rows[0] ? r.json.head.vars.map(v => rows[0][v] ? (rows[0][v].type === 'uri' ? shorten(rows[0][v].value) : rows[0][v].value) : '–').join(' · ') : '';
+        });
+        wrap.appendChild(table);
+        setStatus([['Same query, every user', 'ok']]);
+        $('result').replaceChildren(wrap);
+      } catch (error) {
+        setStatus([['network error', 'err']]);
+        $('result').replaceChildren(networkError(error));
+      }
+    }));
+
+    // ---------- tabs ----------
+    for (const tab of document.querySelectorAll('.tab')) {
+      tab.addEventListener('click', () => {
+        for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t === tab));
+        for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== tab.dataset.tab;
+      });
+    }
+
+    async function loadSource(file, id) {
+      const code = $(id);
+      try {
+        const res = await fetch(file);
+        if (!res.ok) throw new Error(`${res.status}`);
+        code.textContent = await res.text();
+        if (window.Prism) Prism.highlightElement(code);
+      } catch (error) {
+        code.textContent = `# Could not load ${file} (${error.message}).`;
+      }
+    }
+
+    selectUser(USERS[0]);
+    selectQuery(0);
+    loadSource('policies.ttl', 'policies');
+    loadSource('data.trig', 'data');
+  </script>
+</body>
+</html>
