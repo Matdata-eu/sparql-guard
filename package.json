@@ -1,0 +1,53 @@
+{
+  "name": "sparql-guard",
+  "version": "0.1.0",
+  "description": "Store-neutral access-control proxy for SPARQL endpoints: graph-level and row-level policies written in SHACL, enforced by query rewriting.",
+  "license": "Apache-2.0",
+  "author": "Mathias Vanden Auweele <mathias@matdata.eu>",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "sparql-guard": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "sparql",
+    "rdf",
+    "shacl",
+    "access-control",
+    "proxy",
+    "linked-data"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node dist/cli.js serve",
+    "dev": "tsx src/cli.ts serve",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "dependencies": {
+    "@traqula/algebra-sparql-1-1": "^1.4.0",
+    "@traqula/generator-sparql-1-1": "^1.4.0",
+    "@traqula/parser-sparql-1-1": "^1.4.0",
+    "n3": "^2.13.11"
+  },
+  "devDependencies": {
+    "@rdfjs/types": "^2.0.1",
+    "@types/n3": "^1.26.4",
+    "@types/node": "^26.6.5",
+    "oxigraph": "^0.5.11",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitepress": "^1.6.4",
+    "vitest": "^5.0.3"
+  }
+}
