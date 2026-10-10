@@ -46,6 +46,10 @@ triples.
 | Paths that include a hidden property, negated property sets when properties are hidden | Which predicate matched cannot be checked. |
 | `FROM` / `FROM NAMED` with `sg:readAllGraphs` and row-level rules | The checks must see all graphs, which cannot be listed in a dataset clause. Use `GRAPH` instead. |
 
+In `"sparqlVersion": "1.2"` mode, triple terms are only visible when the triple they contain
+is visible. In `1.1` mode they are not checked, so stores with RDF 1.2 / RDF-star data must
+run in 1.2 mode. See [SPARQL 1.2](./sparql-1-2).
+
 `DESCRIBE` is not refused, but rewritten to a `CONSTRUCT` of the resource's outgoing visible
 triples; store-specific `DESCRIBE` behaviour (e.g. concise bounded descriptions that follow
 blank nodes) is not reproduced.

@@ -85,6 +85,11 @@ SELECT (SUM(?cost) AS ?total) (COUNT(?order) AS ?orders) WHERE {
 returns "Jan Peeters". The south-region order `rd:wo-2026-0425` returns nothing at all, not
 even its label.
 
+**SPARQL 1.2 annotations.** The playground runs with `"sparqlVersion": "1.2"`, and some
+incident statements carry RDF 1.2 annotations. "Who confirmed what (SPARQL 1.2)" lists the
+annotated statements for the administrator. For the safety analyst it returns nothing,
+because those statements are about the hidden driver. See [SPARQL 1.2](./sparql-1-2).
+
 **DESCRIBE.** "DESCRIBE a level crossing" returns the crossing without its access code for the
 safety analyst, and nothing for Els, since it is in the north region.
 

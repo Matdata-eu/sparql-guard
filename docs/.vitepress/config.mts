@@ -34,6 +34,7 @@ export default defineConfig({
           { text: 'Authentication', link: '/guide/authentication' },
           { text: 'Deployment', link: '/guide/deployment' },
           { text: 'Triple stores', link: '/guide/triple-stores' },
+          { text: 'SPARQL 1.2', link: '/guide/sparql-1-2' },
           { text: 'Using it as a library', link: '/guide/library' },
           { text: 'Security model', link: '/guide/security-model' },
           { text: 'Troubleshooting', link: '/guide/troubleshooting' },

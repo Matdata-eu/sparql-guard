@@ -2,7 +2,7 @@
 
 ```text
 sparql-guard serve [--config sparql-guard.json]
-sparql-guard rewrite --policies <file.ttl>... [--agent <iri>] [--group <name>]... <query.rq | ->
+sparql-guard rewrite --policies <file.ttl>... [--agent <iri>] [--group <name>]... [--sparql 1.1|1.2] <query.rq | ->
 sparql-guard check --policies <file.ttl>...
 sparql-guard hash-key <api-key>
 ```
@@ -30,6 +30,7 @@ on stderr as a comment.
 | `-p`, `--policies` | Policy file; repeat for several. |
 | `-a`, `--agent` | Agent IRI. Omit for an anonymous request. |
 | `-g`, `--group` | Group; repeat for several. |
+| `--sparql` | `1.1` (default) or `1.2`, like `sparqlVersion` in the configuration. |
 | `<query.rq>` | File with the query, or `-` for stdin. |
 
 ```sh

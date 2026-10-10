@@ -53,6 +53,7 @@ Loading throws `PolicyError` for unparsable files and for unsupported SHACL.
 | `query` | The SPARQL query string. |
 | `policy` | An `EffectivePolicy` from `PolicySet.resolve`. |
 | `options.agent` | Agent IRI used for `sg:requestingAgent`, or `null`. |
+| `options.sparqlVersion` | `'1.1'` (default) or `'1.2'`; see [SPARQL 1.2](./sparql-1-2). |
 | `options.protocolDataset` | `{ default: string[], named: string[] }` from the protocol's `default-graph-uri` / `named-graph-uri` parameters; replaces the query's `FROM` clauses. |
 
 Returns `{ query, form }`, where `form` is `select`, `ask`, `construct` or `describe`. A

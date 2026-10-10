@@ -18,6 +18,8 @@ those policies allow, and forwards the rewritten query to the store.
   sub-queries and `CONSTRUCT` all evaluate over the restricted view, so counts and joins can
   not leak hidden data. Parsing, algebra and generation are done with
   [Traqula](https://github.com/comunica/traqula).
+- **SPARQL 1.2** — reifiers, annotations and triple terms are supported, and a triple term
+  is only visible when the triple it carries is.
 - **Fails closed** — unsupported SHACL in a policy stops the proxy from starting; queries that
   cannot be rewritten safely (`SERVICE`, updates, transitive paths over restricted data, …) are
   refused, never passed through.

@@ -75,6 +75,12 @@ below are what to look at; run the checks above against your own configuration.
 - Check the dataset-clause behaviour of your version with the queries above. QLever's support
   for named graphs is more recent than in the other stores.
 
+## SPARQL 1.2
+
+With `"sparqlVersion": "1.2"` and row-level policies, rewritten queries use `isTRIPLE`,
+`SUBJECT`, `PREDICATE` and `OBJECT`. Check that your store supports them before switching; see
+[SPARQL 1.2](./sparql-1-2). Oxigraph does, which the playground and test suite use.
+
 ## Read-only endpoints
 
 sparql-guard never sends updates. Still, point it at a **query-only** endpoint (for example

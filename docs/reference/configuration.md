@@ -25,7 +25,8 @@ another path with `--config` or `SPARQL_GUARD_CONFIG`.
   "graphSpanningChecks": true,
   "explain": false,
   "watchPolicies": true,
-  "timeoutMs": 60000
+  "timeoutMs": 60000,
+  "sparqlVersion": "1.1"
 }
 ```
 
@@ -46,6 +47,7 @@ another path with `--config` or `SPARQL_GUARD_CONFIG`.
 | `explain` | boolean | `false` | Serve `<path>/explain`, which returns the rewritten query. |
 | `watchPolicies` | boolean | `false` | Reload the policy files when they change (polled every 2 s). |
 | `timeoutMs` | number | `60000` | Timeout for each upstream request. |
+| `sparqlVersion` | `"1.1"` \| `"1.2"` | `"1.1"` | SPARQL version accepted from clients and sent to the store. Set `"1.2"` when the data contains triple terms; see [SPARQL 1.2](../guide/sparql-1-2). |
 
 ### `auth.apiKeys[]`
 
