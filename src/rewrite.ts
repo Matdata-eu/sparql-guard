@@ -48,6 +48,11 @@ export interface RewriteOptions {
    * checked too, using `isTRIPLE`, `SUBJECT`, `PREDICATE` and `OBJECT`. Default `1.1`.
    */
   sparqlVersion?: SparqlVersion;
+  /**
+   * Return an indented query for people to read, instead of a single line. Large queries are
+   * always returned on one line, since indenting them is slow.
+   */
+  pretty?: boolean;
 }
 
 export interface RewriteResult {
@@ -59,6 +64,9 @@ const QUERY_FORMS: Record<string, RewriteResult['form']> = {
   project: 'select', distinct: 'select', reduced: 'select', slice: 'select', orderby: 'select',
   ask: 'ask', construct: 'construct', describe: 'describe',
 };
+
+/** Beyond this many characters, indenting the generated query costs seconds of CPU. */
+const PRETTY_LIMIT = 20_000;
 
 const UPDATE_TYPES = new Set([
   'compositeupdate', 'deleteinsert', 'load', 'clear', 'create', 'drop', 'add', 'move', 'copy',
@@ -135,7 +143,11 @@ export function rewriteQuery(query: string, policy: EffectivePolicy, options: Re
       named: nonEmpty(dataset.named).map(g => factory.namedNode(g)),
     };
   }
-  return { query: generate(op, version), form };
+  const compact = generate(op, version);
+  if (options.pretty && compact.length <= PRETTY_LIMIT) {
+    return { query: generate(op, version, true), form };
+  }
+  return { query: compact, form };
 }
 
 function term(t: RDF.Term): string {

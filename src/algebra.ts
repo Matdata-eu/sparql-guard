@@ -8,6 +8,7 @@ import { Generator as Generator11 } from '@traqula/generator-sparql-1-1';
 import { Generator as Generator12 } from '@traqula/generator-sparql-1-2';
 import { Parser as Parser11 } from '@traqula/parser-sparql-1-1';
 import { Parser as Parser12 } from '@traqula/parser-sparql-1-2';
+import { traqulaIndentation, traqulaNewlineAlternative } from '@traqula/core';
 import { DataFactory } from 'n3';
 import type * as RDF from '@rdfjs/types';
 import { RESERVED_VAR_PREFIX } from './vocab.js';
@@ -34,11 +35,19 @@ export function astToAlgebra(ast: Op, version: SparqlVersion = '1.1'): Op {
   return version === '1.2' ? toAlgebra12(ast as never, options) : toAlgebra11(ast as never, options);
 }
 
-export function generate(op: Op, version: SparqlVersion = '1.1'): string {
+/**
+ * Generation context for single-line output. Traqula's indenting generator gets slow (quadratic)
+ * on the large queries that policy checks produce, so queries for the store are generated on one
+ * line; indented output is only produced on request, for people to read.
+ */
+const COMPACT = { [traqulaIndentation]: -1, indentInc: 0, [traqulaNewlineAlternative]: ' ' };
+
+export function generate(op: Op, version: SparqlVersion = '1.1', pretty = false): string {
   // A generator must not be shared between concurrent calls, so create one per call.
+  const context = pretty ? {} : COMPACT;
   return version === '1.2' ?
-    new Generator12().generate(toAst12(op) as never) :
-    new Generator11().generate(toAst11(op) as never);
+    new Generator12().generate(toAst12(op) as never, context as never) :
+    new Generator11().generate(toAst11(op) as never, context as never);
 }
 
 export const variable = (name: string): RDF.Variable => factory.variable(name);

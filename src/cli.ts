@@ -68,7 +68,7 @@ function main(argv: string[]): void {
       if (values.sparql !== '1.1' && values.sparql !== '1.2') {
         throw new Error('--sparql must be 1.1 or 1.2');
       }
-      const rewritten = rewriteQuery(query, policy, { agent: requester.agent, sparqlVersion: values.sparql });
+      const rewritten = rewriteQuery(query, policy, { agent: requester.agent, sparqlVersion: values.sparql, pretty: true });
       process.stdout.write(`${rewritten.query}\n`);
       return;
     }

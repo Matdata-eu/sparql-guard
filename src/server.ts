@@ -101,6 +101,7 @@ export function createGuardServer(config: Config, log: (line: string) => void = 
         agent: requester.agent,
         protocolDataset: request.dataset,
         sparqlVersion: config.sparqlVersion,
+        pretty: explain,
       });
 
       if (explain) {
