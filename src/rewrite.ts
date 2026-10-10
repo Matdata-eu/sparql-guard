@@ -10,7 +10,7 @@
 import type * as RDF from '@rdfjs/types';
 import {
   and, astToAlgebra, factory, FALSE, filter, generate, mapOps, operator, parseAst, substitute, termExpr,
-  variable, visit, type Op,
+  variable, visit, type Op, type SparqlVersion,
 } from './algebra.js';
 import type { EffectivePolicy, HiddenPropertyRule } from './policy.js';
 import { ANONYMOUS_AGENT, EMPTY_GRAPH, RESERVED_VAR_PREFIX } from './vocab.js';
@@ -43,6 +43,11 @@ export interface RewriteOptions {
   agent: string | null;
   /** `default-graph-uri` / `named-graph-uri` from the SPARQL protocol; they override FROM clauses. */
   protocolDataset?: Dataset;
+  /**
+   * SPARQL version to accept and generate. With `1.2`, triple terms (RDF 1.2 / RDF-star) are
+   * checked too, using `isTRIPLE`, `SUBJECT`, `PREDICATE` and `OBJECT`. Default `1.1`.
+   */
+  sparqlVersion?: SparqlVersion;
 }
 
 export interface RewriteResult {
@@ -60,9 +65,10 @@ const UPDATE_TYPES = new Set([
 ]);
 
 export function rewriteQuery(query: string, policy: EffectivePolicy, options: RewriteOptions): RewriteResult {
+  const version = options.sparqlVersion ?? '1.1';
   let ast: Op;
   try {
-    ast = parseAst(query);
+    ast = parseAst(query, version);
   } catch (error) {
     throw new UnsupportedQuery(`Cannot parse query: ${(error as Error).message}`);
   }
@@ -71,7 +77,7 @@ export function rewriteQuery(query: string, policy: EffectivePolicy, options: Re
   }
   let op: Op;
   try {
-    op = astToAlgebra(ast);
+    op = astToAlgebra(ast, version);
   } catch (error) {
     throw new UnsupportedQuery(`Cannot translate query: ${(error as Error).message}`);
   }
@@ -119,7 +125,7 @@ export function rewriteQuery(query: string, policy: EffectivePolicy, options: Re
   }
 
   if (rowLevel) {
-    op = applyRowLevel(op, policy, options.agent);
+    op = new RowLevel(policy, options.agent, version === '1.2').apply(op);
   }
   if (dataset) {
     op = {
@@ -129,7 +135,7 @@ export function rewriteQuery(query: string, policy: EffectivePolicy, options: Re
       named: nonEmpty(dataset.named).map(g => factory.namedNode(g)),
     };
   }
-  return { query: generate(op), form };
+  return { query: generate(op, version), form };
 }
 
 function term(t: RDF.Term): string {
@@ -211,36 +217,116 @@ function narrowGraphs(op: Op, named: string[]): Op {
   });
 }
 
-function applyRowLevel(op: Op, policy: EffectivePolicy, agent: string | null): Op {
-  const agentTerm = factory.namedNode(agent ?? ANONYMOUS_AGENT);
-  const visible = (t: RDF.Term): Op[] => policy.visibility.map(rule =>
-    substitute(rule.expression, { [`${RESERVED_VAR_PREFIX}this`]: t, [`${RESERVED_VAR_PREFIX}agent`]: agentTerm }));
-  const isTarget = (rule: HiddenPropertyRule, t: RDF.Term): Op =>
-    substitute(rule.isTarget, { [`${RESERVED_VAR_PREFIX}this`]: t, [`${RESERVED_VAR_PREFIX}agent`]: agentTerm });
+/** Injects the row-level checks (visibility and hidden properties) into every pattern. */
+class RowLevel {
+  private readonly agent: RDF.NamedNode;
+  private counter = 0;
 
-  return mapOps(op, (node) => {
-    if (node.type === 'bgp' && node.patterns.length > 0) {
-      const checks = new Checks();
-      for (const pattern of node.patterns) {
-        checks.resource(pattern.subject, visible);
-        if (policy.hideReferences) {
-          checks.resource(pattern.object, visible, true);
+  /**
+   * @param tripleTerms check triple terms (SPARQL 1.2): a triple term carries a whole triple, so
+   *   it is only visible when that triple would be visible as well.
+   */
+  public constructor(
+    private readonly policy: EffectivePolicy,
+    agent: string | null,
+    private readonly tripleTerms: boolean,
+  ) {
+    this.agent = factory.namedNode(agent ?? ANONYMOUS_AGENT);
+  }
+
+  public apply(op: Op): Op {
+    return mapOps(op, (node) => {
+      if (node.type === 'bgp' && node.patterns.length > 0) {
+        const checks = new Checks();
+        for (const pattern of node.patterns) {
+          this.triple(pattern.subject, pattern.predicate, pattern.object, checks, 0);
         }
-        for (const rule of policy.hiddenProperties) {
-          checks.add(hiddenPropertyCheck(rule, pattern.subject, pattern.predicate, isTarget));
-        }
+        return checks.wrap(node);
       }
-      return checks.wrap(node);
+      if (node.type === 'path') {
+        checkPath(node.predicate, this.policy);
+        const checks = new Checks();
+        this.node(node.subject, checks, 0, false);
+        this.node(node.object, checks, 0, true);
+        return checks.wrap(node);
+      }
+      return node;
+    });
+  }
+
+  /** Conditions under which the triple (s, p, o) is part of the view. */
+  private triple(s: RDF.Term, p: RDF.Term, o: RDF.Term, checks: Checks, depth: number): void {
+    this.node(s, checks, depth, false);
+    if (o.termType === 'Quad' || this.policy.hideReferences) {
+      this.node(o, checks, depth, true);
+    } else {
+      this.tripleTerm(o, checks, depth);
     }
-    if (node.type === 'path') {
-      checkPath(node.predicate, policy);
-      const checks = new Checks();
-      checks.resource(node.subject, visible);
-      checks.resource(node.object, visible, true);
-      return checks.wrap(node);
+    for (const rule of this.policy.hiddenProperties) {
+      checks.add(this.hiddenProperty(rule, s, p));
     }
-    return node;
-  });
+  }
+
+  /** Checks for a term in subject or object position. */
+  private node(t: RDF.Term, checks: Checks, depth: number, mayBeLiteral: boolean): void {
+    if (t.termType === 'Quad') {
+      // A triple term pattern in the query, e.g. `?r rdf:reifies <<( ?s ex:salary ?o )>>`:
+      // its components must form a visible triple.
+      const q = t as unknown as RDF.Quad;
+      this.triple(q.subject, q.predicate, q.object, checks, depth);
+      return;
+    }
+    checks.resource(t, this.visible, mayBeLiteral);
+    this.tripleTerm(t, checks, depth);
+  }
+
+  /**
+   * A variable may be bound to a triple term at runtime. Its subject, predicate and object are
+   * unpacked with SUBJECT/PREDICATE/OBJECT and checked like any triple. Nested triple terms are
+   * hidden rather than unpacked further.
+   */
+  private tripleTerm(t: RDF.Term, checks: Checks, depth: number): void {
+    if (!this.tripleTerms || t.termType !== 'Variable') {
+      return;
+    }
+    const isTriple = operator('istriple', [termExpr(t)]);
+    if (depth > 0) {
+      checks.addOnce(`triple:${t.value}`, operator('!', [isTriple]));
+      return;
+    }
+    const n = this.counter++;
+    const [ts, tp, to] = ['s', 'p', 'o'].map(c => variable(`${RESERVED_VAR_PREFIX}t${c}${n}`));
+    const inner = new Checks();
+    this.triple(ts, tp, to, inner, depth + 1);
+    let unpacked: Op = { type: 'bgp', patterns: [] };
+    for (const [v, fn] of [[ts, 'subject'], [tp, 'predicate'], [to, 'object']] as const) {
+      unpacked = { type: 'extend', input: unpacked, variable: v, expression: operator(fn, [termExpr(t)]) };
+    }
+    const exists = { type: 'expression', subType: 'existence', not: false, input: inner.wrap(unpacked) };
+    checks.addOnce(`triple:${t.value}`, operator('||', [operator('!', [isTriple]), exists]));
+  }
+
+  private readonly visible = (t: RDF.Term): Op[] => this.policy.visibility.map(rule => this.instantiate(rule.expression, t));
+
+  private instantiate(template: Op, t: RDF.Term): Op {
+    return substitute(template, { [`${RESERVED_VAR_PREFIX}this`]: t, [`${RESERVED_VAR_PREFIX}agent`]: this.agent });
+  }
+
+  private hiddenProperty(rule: HiddenPropertyRule, subject: RDF.Term, predicate: RDF.Term): Op | null {
+    if (subject.termType === 'Quad' && rule.isTarget !== null) {
+      // A triple term is never an instance of a target class.
+      return null;
+    }
+    const notTarget = (): Op => operator('!', [this.instantiate(rule.isTarget, subject)]);
+    if (predicate.termType === 'NamedNode') {
+      if (!rule.predicates.includes(predicate.value)) {
+        return null;
+      }
+      return rule.isTarget === null ? FALSE : notTarget();
+    }
+    const notHidden = operator('notin', [termExpr(predicate), ...rule.predicates.map(p => termExpr(factory.namedNode(p)))]);
+    return rule.isTarget === null ? notHidden : operator('||', [notHidden, notTarget()]);
+  }
 }
 
 /** Collects the filter conditions for one BGP or path, checking every resource term once. */
@@ -277,26 +363,16 @@ class Checks {
     }
   }
 
+  public addOnce(key: string, condition: Op): void {
+    if (!this.seen.has(key)) {
+      this.seen.add(key);
+      this.conditions.push(condition);
+    }
+  }
+
   public wrap(node: Op): Op {
     return this.conditions.length === 0 ? node : filter(and(this.conditions), node);
   }
-}
-
-function hiddenPropertyCheck(
-  rule: HiddenPropertyRule,
-  subject: RDF.Term,
-  predicate: RDF.Term,
-  isTarget: (rule: HiddenPropertyRule, t: RDF.Term) => Op,
-): Op | null {
-  const notTarget = (): Op => operator('!', [isTarget(rule, subject)]);
-  if (predicate.termType === 'NamedNode') {
-    if (!rule.predicates.includes(predicate.value)) {
-      return null;
-    }
-    return rule.isTarget === null ? FALSE : notTarget();
-  }
-  const notHidden = operator('notin', [termExpr(predicate), ...rule.predicates.map(p => termExpr(factory.namedNode(p)))]);
-  return rule.isTarget === null ? notHidden : operator('||', [notHidden, notTarget()]);
 }
 
 /**

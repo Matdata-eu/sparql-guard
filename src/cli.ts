@@ -11,7 +11,7 @@ const USAGE = `sparql-guard: access-control proxy for SPARQL endpoints
 
 Usage:
   sparql-guard serve [--config sparql-guard.json]
-  sparql-guard rewrite --policies <file.ttl>... [--agent <iri>] [--group <name>]... <query.rq | ->
+  sparql-guard rewrite --policies <file.ttl>... [--agent <iri>] [--group <name>]... [--sparql 1.1|1.2] <query.rq | ->
   sparql-guard check --policies <file.ttl>...
   sparql-guard hash-key <api-key>
 
@@ -31,6 +31,7 @@ function main(argv: string[]): void {
       policies: { type: 'string', short: 'p', multiple: true },
       agent: { type: 'string', short: 'a' },
       group: { type: 'string', short: 'g', multiple: true },
+      sparql: { type: 'string', default: '1.1' },
       help: { type: 'boolean', short: 'h' },
     },
   });
@@ -64,7 +65,11 @@ function main(argv: string[]): void {
         throw new Error('No policy applies to this agent; every query would be refused');
       }
       process.stderr.write(`# policies: ${policy.policies.join(', ')}\n`);
-      process.stdout.write(`${rewriteQuery(query, policy, { agent: requester.agent }).query}\n`);
+      if (values.sparql !== '1.1' && values.sparql !== '1.2') {
+        throw new Error('--sparql must be 1.1 or 1.2');
+      }
+      const rewritten = rewriteQuery(query, policy, { agent: requester.agent, sparqlVersion: values.sparql });
+      process.stdout.write(`${rewritten.query}\n`);
       return;
     }
     case 'check': {

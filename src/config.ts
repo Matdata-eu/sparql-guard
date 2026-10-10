@@ -45,6 +45,8 @@ export interface Config {
   watchPolicies?: boolean;
   /** Upstream request timeout in milliseconds. */
   timeoutMs?: number;
+  /** SPARQL version accepted from clients and sent to the store. Use 1.2 when the data has triple terms. */
+  sparqlVersion?: '1.1' | '1.2';
 }
 
 export function loadConfig(file: string): Config {
@@ -69,5 +71,8 @@ export function loadConfig(file: string): Config {
   const base = dirname(resolve(file));
   config.policies = config.policies.map(p => resolve(base, p));
   config.auth ??= {};
+  if (config.sparqlVersion !== undefined && config.sparqlVersion !== '1.1' && config.sparqlVersion !== '1.2') {
+    throw new Error('"sparqlVersion" must be "1.1" or "1.2"');
+  }
   return config;
 }

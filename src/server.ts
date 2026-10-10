@@ -96,7 +96,11 @@ export function createGuardServer(config: Config, log: (line: string) => void = 
       if (!policy) {
         throw new AccessDenied('No access policy applies to you');
       }
-      const rewritten = rewriteQuery(request.query, policy, { agent: requester.agent, protocolDataset: request.dataset });
+      const rewritten = rewriteQuery(request.query, policy, {
+        agent: requester.agent,
+        protocolDataset: request.dataset,
+        sparqlVersion: config.sparqlVersion,
+      });
 
       if (explain) {
         res.writeHead(200, { 'content-type': 'application/json', ...corsHeaders(req) });

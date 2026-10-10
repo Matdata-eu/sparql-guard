@@ -19,6 +19,7 @@ export const ADMIN: Requester = { agent: 'urn:sparql-guard:user:hilde', groups: 
 /** An in-memory store with the example data, and a way to query it through a policy set. */
 export class Harness {
   public readonly store = new oxigraph.Store();
+  public sparqlVersion: '1.1' | '1.2' = '1.1';
 
   public constructor(public policies: PolicySet, data = readFileSync(examples('data.trig'), 'utf8')) {
     this.store.load(data, { format: 'application/trig' });
@@ -37,7 +38,7 @@ export class Harness {
     if (!policy) {
       throw new Error('no policy');
     }
-    return rewriteQuery(PREFIXES + query, policy, { agent: requester.agent, protocolDataset }).query;
+    return rewriteQuery(PREFIXES + query, policy, { agent: requester.agent, protocolDataset, sparqlVersion: this.sparqlVersion }).query;
   }
 
   /** Runs a SELECT through the policies; returns the sorted values of one variable. */

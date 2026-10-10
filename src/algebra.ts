@@ -2,9 +2,12 @@
  * Small helpers around Traqula's SPARQL algebra: parsing, generating, building nodes
  * and turning the SPARQL expressions produced by the SHACL compiler into reusable templates.
  */
-import { toAlgebra, toAst } from '@traqula/algebra-sparql-1-1';
-import { Generator } from '@traqula/generator-sparql-1-1';
-import { Parser } from '@traqula/parser-sparql-1-1';
+import { toAlgebra as toAlgebra11, toAst as toAst11 } from '@traqula/algebra-sparql-1-1';
+import { toAlgebra as toAlgebra12, toAst as toAst12 } from '@traqula/algebra-sparql-1-2';
+import { Generator as Generator11 } from '@traqula/generator-sparql-1-1';
+import { Generator as Generator12 } from '@traqula/generator-sparql-1-2';
+import { Parser as Parser11 } from '@traqula/parser-sparql-1-1';
+import { Parser as Parser12 } from '@traqula/parser-sparql-1-2';
 import { DataFactory } from 'n3';
 import type * as RDF from '@rdfjs/types';
 import { RESERVED_VAR_PREFIX } from './vocab.js';
@@ -15,21 +18,27 @@ export type Op = any;
 
 export const factory = DataFactory;
 
-export function parseAst(query: string): Op {
-  return new Parser().parse(query);
+/** The SPARQL version queries are parsed and generated in. */
+export type SparqlVersion = '1.1' | '1.2';
+
+export function parseAst(query: string, version: SparqlVersion = '1.1'): Op {
+  return version === '1.2' ? new Parser12().parse(query) : new Parser11().parse(query);
 }
 
-export function parseToAlgebra(query: string): Op {
-  return astToAlgebra(parseAst(query));
+export function parseToAlgebra(query: string, version: SparqlVersion = '1.1'): Op {
+  return astToAlgebra(parseAst(query, version), version);
 }
 
-export function astToAlgebra(ast: Op): Op {
-  return toAlgebra(ast as never, { blankToVariable: true });
+export function astToAlgebra(ast: Op, version: SparqlVersion = '1.1'): Op {
+  const options = { blankToVariable: true };
+  return version === '1.2' ? toAlgebra12(ast as never, options) : toAlgebra11(ast as never, options);
 }
 
-export function generate(op: Op): string {
+export function generate(op: Op, version: SparqlVersion = '1.1'): string {
   // A generator must not be shared between concurrent calls, so create one per call.
-  return new Generator().generate(toAst(op) as never);
+  return version === '1.2' ?
+    new Generator12().generate(toAst12(op) as never) :
+    new Generator11().generate(toAst11(op) as never);
 }
 
 export const variable = (name: string): RDF.Variable => factory.variable(name);
