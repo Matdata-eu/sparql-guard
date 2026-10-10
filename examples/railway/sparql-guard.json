@@ -1,0 +1,23 @@
+{
+  "upstream": "http://store:7878/query",
+  "port": 8080,
+  "path": "/sparql",
+  "policies": ["policies.ttl"],
+  "auth": {
+    "apiKeys": [
+      { "sha256": "afacab3575137afa4e00d9cbcafcb14c9ae25f779d964eb0ea5b2c4eb5dfd163", "agent": "urn:sparql-guard:user:acme-dispatcher", "groups": ["operator-acme"] },
+      { "sha256": "9cca4fb4d7e3842c2fad316d5f496cdd3549e79828d778967e0983d2590c333f", "agent": "urn:sparql-guard:user:jan", "groups": ["maintenance-north"] },
+      { "sha256": "d9247e1a5fdc21ac9371525bde5c3329d67a26ebe7626ecf869b0006cef94592", "agent": "urn:sparql-guard:user:els", "groups": ["maintenance-south"] },
+      { "sha256": "08512980e60f2cfdd542aa3cab810b9cb6f18243d7ae720c4759bea35d2da144", "agent": "urn:sparql-guard:user:investigator", "groups": ["safety"] },
+      { "sha256": "69a5265506c94c77b787a7d7377b7685a0eff82e33920a71e7ee22cd6154953e", "agent": "urn:sparql-guard:user:admin", "groups": ["admin"] }
+    ],
+    "trustedHeaders": {
+      "agent": "x-forwarded-user",
+      "groups": "x-forwarded-groups",
+      "agentPrefix": "urn:sparql-guard:user:"
+    },
+    "anonymous": true
+  },
+  "explain": true,
+  "watchPolicies": true
+}

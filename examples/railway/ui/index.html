@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sparql-guard playground</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4.6.2/build/yasgui.min.css">
+  <style>
+    :root {
+      --bg: #f6f7f9; --panel: #fff; --text: #1d2330; --muted: #5d6677; --border: #d9dde5;
+      --accent: #b3261e; --accent-soft: #fbeceb; --code: #f0f2f5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+    header { padding: 16px 24px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: flex-end; }
+    h1 { font-size: 18px; margin: 0 0 2px; }
+    header p { margin: 0; color: var(--muted); font-size: 13px; }
+    .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+    select, input, button { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); }
+    select { min-width: 260px; }
+    button { cursor: pointer; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    #custom { display: none; gap: 12px; }
+    #custom.on { display: flex; }
+    #role-info { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+    #role-info b { color: var(--text); }
+    main { padding: 16px 24px 32px; }
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .examples span { font-size: 12px; color: var(--muted); margin-right: 4px; }
+    .examples button { font-size: 13px; padding: 4px 10px; }
+    #explain { display: none; margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+    #explain.on { display: block; }
+    #explain h2 { font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; }
+    #explain pre { margin: 0; max-height: 420px; overflow: auto; background: var(--code); padding: 12px; border-radius: 6px; font-size: 12px; }
+    .error { color: var(--accent); background: var(--accent-soft); }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>sparql-guard playground</h1>
+      <p>Railway data behind an access-control proxy. Pick a role, run a query, compare.</p>
+    </div>
+    <label class="field">Role
+      <select id="role"></select>
+    </label>
+    <div id="custom">
+      <label class="field">User name or IRI <input id="custom-user" value="jan"></label>
+      <label class="field">Groups (comma separated) <input id="custom-groups" value="maintenance-north"></label>
+    </div>
+    <button id="explain-btn" class="primary">Show rewritten query</button>
+    <div id="role-info"></div>
+  </header>
+  <main>
+    <div class="examples" id="examples"><span>Examples:</span></div>
+    <div id="yasgui"></div>
+    <section id="explain">
+      <h2><span>What the store actually receives</span><button id="explain-close">Close</button></h2>
+      <pre id="explain-out"></pre>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@zazuko/yasgui@4.6.2/build/yasgui.min.js"></script>
+  <script>
+    const PREFIXES = `PREFIX rv: <https://example.org/rail/vocab#>
+PREFIX rd: <https://example.org/rail/data/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+`;
+
+    const ROLES = [
+      { id: 'anonymous', label: 'Anonymous', headers: {},
+        info: 'No credentials. Reads the <b>network</b> graph only.' },
+      { id: 'acme', label: 'ACME Rail dispatcher (operator-acme)', headers: { Authorization: 'Bearer acme-key' },
+        info: 'Network + timetable, but only <b>ACME train paths</b>.' },
+      { id: 'jan', label: 'Jan, maintenance north', headers: { Authorization: 'Bearer jan-key' },
+        info: 'Assets, work orders and staff of the <b>north</b> region, plus his own record. No salary scales.' },
+      { id: 'els', label: 'Els, maintenance south', headers: { Authorization: 'Bearer els-key' },
+        info: 'Assets, work orders and staff of the <b>south</b> region, plus her own record. No salary scales.' },
+      { id: 'safety', label: 'Safety analyst (safety)', headers: { Authorization: 'Bearer safety-key' },
+        info: 'Incidents, assets, timetable. <b>No driver identities or statements</b>, no cabinet access codes.' },
+      { id: 'admin', label: 'Administrator (admin)', headers: { Authorization: 'Bearer admin-key' },
+        info: 'Everything.' },
+      { id: 'custom', label: 'Custom user and groups…', headers: null,
+        info: 'Sent as <code>x-forwarded-user</code> / <code>x-forwarded-groups</code>. Groups in policies.ttl: operator-acme, maintenance-north, maintenance-south, safety, admin.' },
+    ];
+
+    const EXAMPLES = [
+      ['Everything I can see', 'SELECT ?g (COUNT(*) AS ?triples) WHERE {\n  GRAPH ?g { ?s ?p ?o }\n}\nGROUP BY ?g\nORDER BY ?g'],
+      ['Train paths', 'SELECT ?train ?operator ?origin ?destination ?departure WHERE {\n  ?path a rv:TrainPath ;\n    rv:trainNumber ?train ;\n    rv:operatedBy/rdfs:label ?operator ;\n    rv:origin/rdfs:label ?origin ;\n    rv:destination/rdfs:label ?destination ;\n    rv:departure ?departure .\n}\nORDER BY ?departure'],
+      ['Assets in bad shape', 'SELECT ?asset ?label ?condition ?region WHERE {\n  ?asset a ?type ; rdfs:label ?label ; rv:condition ?condition ; rv:region/rdfs:label ?region .\n  ?type rdfs:subClassOf rv:Asset .\n  FILTER(?condition != "good")\n}'],
+      ['Work orders and cost', 'SELECT ?order ?label ?status ?assignee ?cost WHERE {\n  ?order a rv:WorkOrder ; rdfs:label ?label ; rv:status ?status ; rv:costEstimateEur ?cost .\n  OPTIONAL { ?order rv:assignedTo/rdfs:label ?assignee }\n}\nORDER BY DESC(?cost)'],
+      ['Total maintenance budget', 'SELECT (SUM(?cost) AS ?total) (COUNT(?order) AS ?orders) WHERE {\n  ?order a rv:WorkOrder ; rv:costEstimateEur ?cost .\n}'],
+      ['Incidents', 'SELECT ?incident ?label ?severity ?driver ?statement WHERE {\n  ?incident a rv:Incident ; rdfs:label ?label ; rv:severity ?severity .\n  OPTIONAL { ?incident rv:involvedDriver/rdfs:label ?driver }\n  OPTIONAL { ?incident rv:driverStatement ?statement }\n}\nORDER BY DESC(?severity)'],
+      ['Staff', 'SELECT ?person ?name ?role ?team ?scale WHERE {\n  ?person a rv:Staff ; rdfs:label ?name ; rv:role ?role ; rv:team/rdfs:label ?team .\n  OPTIONAL { ?person rv:salaryScale ?scale }\n}'],
+      ['DESCRIBE a level crossing', 'DESCRIBE rd:lc-50-12'],
+      ['Refused: federated query', 'SELECT * WHERE {\n  SERVICE <https://query.wikidata.org/sparql> { ?s ?p ?o } \n} LIMIT 1'],
+    ];
+
+    const roleSelect = document.getElementById('role');
+    for (const role of ROLES) {
+      roleSelect.add(new Option(role.label, role.id));
+    }
+    const remembered = (() => { try { return localStorage.getItem('sg-role'); } catch { return null; } })();
+    if (remembered && ROLES.some(r => r.id === remembered)) roleSelect.value = remembered;
+
+    function currentRole() {
+      return ROLES.find(r => r.id === roleSelect.value);
+    }
+
+    function currentHeaders() {
+      const role = currentRole();
+      if (role.headers) return { ...role.headers };
+      const groups = document.getElementById('custom-groups').value.trim();
+      const headers = { 'x-forwarded-user': document.getElementById('custom-user').value.trim() || 'someone' };
+      if (groups) headers['x-forwarded-groups'] = groups;
+      return headers;
+    }
+
+    function showRole() {
+      const role = currentRole();
+      document.getElementById('custom').classList.toggle('on', role.id === 'custom');
+      document.getElementById('role-info').innerHTML = role.info;
+      try { localStorage.setItem('sg-role', role.id); } catch { /* storage unavailable */ }
+    }
+    roleSelect.addEventListener('change', showRole);
+    showRole();
+
+    const endpoint = `${location.origin}/sparql`;
+    Yasgui.defaults.requestConfig.endpoint = endpoint;
+    const yasgui = new Yasgui(document.getElementById('yasgui'), {
+      persistenceId: null,
+      copyEndpointOnNewTab: true,
+      requestConfig: { endpoint, method: 'POST', headers: () => currentHeaders() },
+      yasqe: { value: PREFIXES + '\n' + EXAMPLES[0][1] },
+    });
+
+    const examples = document.getElementById('examples');
+    for (const [label, query] of EXAMPLES) {
+      const button = document.createElement('button');
+      button.textContent = label;
+      button.addEventListener('click', () => {
+        const yasqe = yasgui.getTab().getYasqe();
+        yasqe.setValue(PREFIXES + '\n' + query);
+        yasqe.query();
+      });
+      examples.appendChild(button);
+    }
+
+    async function explain() {
+      const out = document.getElementById('explain-out');
+      document.getElementById('explain').classList.add('on');
+      out.classList.remove('error');
+      out.textContent = 'Rewriting…';
+      const query = yasgui.getTab().getYasqe().getValue();
+      const res = await fetch(`${endpoint}/explain`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/sparql-query', ...currentHeaders() },
+        body: query,
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        out.classList.add('error');
+        out.textContent = `${res.status}: ${text}`;
+        return;
+      }
+      const body = JSON.parse(text);
+      out.textContent = `# agent: ${body.agent ?? 'anonymous'}  groups: ${body.groups.join(', ') || '-'}\n` +
+        `# policies: ${body.policies.join(', ')}\n\n${body.query}`;
+    }
+    document.getElementById('explain-btn').addEventListener('click', () => { explain().catch(e => alert(e)); });
+    document.getElementById('explain-close').addEventListener('click', () => document.getElementById('explain').classList.remove('on'));
+  </script>
+</body>
+</html>

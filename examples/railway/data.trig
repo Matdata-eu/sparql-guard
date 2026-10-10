@@ -1,0 +1,122 @@
+# Fictional railway data for trying out sparql-guard.
+# Loosely modelled on the Belgian network; all names, people and figures are made up.
+
+@prefix rv:   <https://example.org/rail/vocab#> .
+@prefix rd:   <https://example.org/rail/data/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# ---------------------------------------------------------------------------
+# Network: lines, stations, sections. Public.
+# ---------------------------------------------------------------------------
+<https://example.org/rail/graph/network> {
+  rv:Station rdfs:subClassOf rv:OperationalPoint .
+  rv:Junction rdfs:subClassOf rv:OperationalPoint .
+  rv:Signal rdfs:subClassOf rv:Asset .
+  rv:Switch rdfs:subClassOf rv:Asset .
+  rv:LevelCrossing rdfs:subClassOf rv:Asset .
+
+  rd:region-north a rv:Region ; rdfs:label "North" .
+  rd:region-south a rv:Region ; rdfs:label "South" .
+
+  rd:line-25 a rv:Line ; rdfs:label "Line 25 Brussels - Antwerp" ; rv:lineNumber "25" ; rv:region rd:region-north .
+  rd:line-36 a rv:Line ; rdfs:label "Line 36 Brussels - Liège" ; rv:lineNumber "36" ; rv:region rd:region-south .
+  rd:line-50 a rv:Line ; rdfs:label "Line 50 Brussels - Ghent" ; rv:lineNumber "50" ; rv:region rd:region-north .
+
+  rd:brussels-south a rv:Station ; rdfs:label "Brussels-South" ; rv:uicCode "8814001" .
+  rd:brussels-north a rv:Station ; rdfs:label "Brussels-North" ; rv:uicCode "8812005" .
+  rd:mechelen       a rv:Station ; rdfs:label "Mechelen" ; rv:uicCode "8822004" .
+  rd:antwerp        a rv:Station ; rdfs:label "Antwerp-Central" ; rv:uicCode "8821006" .
+  rd:leuven         a rv:Station ; rdfs:label "Leuven" ; rv:uicCode "8833001" .
+  rd:liege          a rv:Station ; rdfs:label "Liège-Guillemins" ; rv:uicCode "8841004" .
+  rd:aalst          a rv:Station ; rdfs:label "Aalst" ; rv:uicCode "8895000" .
+  rd:ghent          a rv:Station ; rdfs:label "Ghent-Sint-Pieters" ; rv:uicCode "8892007" .
+  rd:schaerbeek-jn  a rv:Junction ; rdfs:label "Schaerbeek junction" .
+
+  rd:s25-1 a rv:Section ; rv:onLine rd:line-25 ; rv:from rd:brussels-north ; rv:to rd:mechelen ; rv:lengthKm 20.6 ; rv:maxSpeedKmh 160 .
+  rd:s25-2 a rv:Section ; rv:onLine rd:line-25 ; rv:from rd:mechelen ; rv:to rd:antwerp ; rv:lengthKm 23.0 ; rv:maxSpeedKmh 160 .
+  rd:s36-1 a rv:Section ; rv:onLine rd:line-36 ; rv:from rd:schaerbeek-jn ; rv:to rd:leuven ; rv:lengthKm 23.5 ; rv:maxSpeedKmh 200 .
+  rd:s36-2 a rv:Section ; rv:onLine rd:line-36 ; rv:from rd:leuven ; rv:to rd:liege ; rv:lengthKm 66.0 ; rv:maxSpeedKmh 200 .
+  rd:s50-1 a rv:Section ; rv:onLine rd:line-50 ; rv:from rd:brussels-south ; rv:to rd:aalst ; rv:lengthKm 27.4 ; rv:maxSpeedKmh 140 .
+  rd:s50-2 a rv:Section ; rv:onLine rd:line-50 ; rv:from rd:aalst ; rv:to rd:ghent ; rv:lengthKm 27.1 ; rv:maxSpeedKmh 140 .
+
+  rd:acme-rail a rv:RailwayUndertaking ; rdfs:label "ACME Rail (passenger)" .
+  rd:belcargo  a rv:RailwayUndertaking ; rdfs:label "BelCargo (freight)" .
+}
+
+# ---------------------------------------------------------------------------
+# Assets on the track. Maintenance teams, per region.
+# ---------------------------------------------------------------------------
+<https://example.org/rail/graph/assets> {
+  rd:sig-25-101 a rv:Signal ; rdfs:label "Signal AX-101" ; rv:onSection rd:s25-1 ; rv:region rd:region-north ;
+    rv:condition "good" ; rv:lastInspection "2026-06-12"^^xsd:date .
+  rd:sig-25-214 a rv:Signal ; rdfs:label "Signal AX-214" ; rv:onSection rd:s25-2 ; rv:region rd:region-north ;
+    rv:condition "degraded" ; rv:lastInspection "2026-02-03"^^xsd:date .
+  rd:sw-mechelen-7 a rv:Switch ; rdfs:label "Switch 7 Mechelen" ; rv:onSection rd:s25-2 ; rv:region rd:region-north ;
+    rv:condition "good" ; rv:lastInspection "2026-08-21"^^xsd:date .
+  rd:lc-50-12 a rv:LevelCrossing ; rdfs:label "Level crossing 50/12 Denderleeuw" ; rv:onSection rd:s50-1 ; rv:region rd:region-north ;
+    rv:condition "good" ; rv:lastInspection "2026-07-30"^^xsd:date ; rv:cabinetAccessCode "4471" .
+  rd:sig-36-033 a rv:Signal ; rdfs:label "Signal LV-033" ; rv:onSection rd:s36-1 ; rv:region rd:region-south ;
+    rv:condition "good" ; rv:lastInspection "2026-05-18"^^xsd:date .
+  rd:sw-leuven-3 a rv:Switch ; rdfs:label "Switch 3 Leuven" ; rv:onSection rd:s36-2 ; rv:region rd:region-south ;
+    rv:condition "critical" ; rv:lastInspection "2025-11-09"^^xsd:date .
+  rd:lc-36-40 a rv:LevelCrossing ; rdfs:label "Level crossing 36/40 Tienen" ; rv:onSection rd:s36-2 ; rv:region rd:region-south ;
+    rv:condition "good" ; rv:lastInspection "2026-09-02"^^xsd:date ; rv:cabinetAccessCode "9013" .
+}
+
+# ---------------------------------------------------------------------------
+# Maintenance work orders.
+# ---------------------------------------------------------------------------
+<https://example.org/rail/graph/maintenance> {
+  rd:wo-2026-0412 a rv:WorkOrder ; rdfs:label "Replace lamp unit AX-214" ; rv:asset rd:sig-25-214 ; rv:region rd:region-north ;
+    rv:status "planned" ; rv:plannedStart "2026-10-14T22:30:00"^^xsd:dateTime ; rv:assignedTo rd:staff-jan ; rv:costEstimateEur 3800 .
+  rd:wo-2026-0419 a rv:WorkOrder ; rdfs:label "Lubricate switch 7" ; rv:asset rd:sw-mechelen-7 ; rv:region rd:region-north ;
+    rv:status "done" ; rv:plannedStart "2026-09-28T23:00:00"^^xsd:dateTime ; rv:assignedTo rd:staff-jan ; rv:costEstimateEur 450 .
+  rd:wo-2026-0425 a rv:WorkOrder ; rdfs:label "Renew switch blades, switch 3 Leuven" ; rv:asset rd:sw-leuven-3 ; rv:region rd:region-south ;
+    rv:status "urgent" ; rv:plannedStart "2026-10-11T23:15:00"^^xsd:dateTime ; rv:assignedTo rd:staff-els ; rv:costEstimateEur 61000 .
+  rd:wo-2026-0431 a rv:WorkOrder ; rdfs:label "Inspect level crossing 36/40" ; rv:asset rd:lc-36-40 ; rv:region rd:region-south ;
+    rv:status "planned" ; rv:plannedStart "2026-10-20T21:00:00"^^xsd:dateTime ; rv:assignedTo rd:staff-els ; rv:costEstimateEur 900 .
+}
+
+# ---------------------------------------------------------------------------
+# Timetable: train paths per railway undertaking.
+# ---------------------------------------------------------------------------
+<https://example.org/rail/graph/timetable> {
+  rd:path-ic-2131 a rv:TrainPath ; rv:trainNumber "IC 2131" ; rv:operatedBy rd:acme-rail ;
+    rv:origin rd:brussels-north ; rv:destination rd:antwerp ; rv:departure "07:12" ; rv:usesSection rd:s25-1, rd:s25-2 .
+  rd:path-ic-3514 a rv:TrainPath ; rv:trainNumber "IC 3514" ; rv:operatedBy rd:acme-rail ;
+    rv:origin rd:brussels-south ; rv:destination rd:ghent ; rv:departure "08:04" ; rv:usesSection rd:s50-1, rd:s50-2 .
+  rd:path-fr-47110 a rv:TrainPath ; rv:trainNumber "FR 47110" ; rv:operatedBy rd:belcargo ;
+    rv:origin rd:antwerp ; rv:destination rd:liege ; rv:departure "02:40" ; rv:usesSection rd:s25-2, rd:s25-1, rd:s36-1, rd:s36-2 ;
+    rv:dangerousGoods true .
+  rd:path-fr-47220 a rv:TrainPath ; rv:trainNumber "FR 47220" ; rv:operatedBy rd:belcargo ;
+    rv:origin rd:ghent ; rv:destination rd:antwerp ; rv:departure "23:55" ; rv:usesSection rd:s50-2 .
+}
+
+# ---------------------------------------------------------------------------
+# Safety incidents.
+# ---------------------------------------------------------------------------
+<https://example.org/rail/graph/incidents> {
+  rd:inc-2026-017 a rv:Incident ; rv:category "SPAD" ; rdfs:label "Signal passed at danger at AX-214" ;
+    rv:atAsset rd:sig-25-214 ; rv:train rd:path-fr-47110 ; rv:date "2026-03-02"^^xsd:date ; rv:severity 2 ;
+    rv:involvedDriver rd:staff-pieter ; rv:driverStatement "Signal aspect was hard to read in fog." .
+  rd:inc-2026-031 a rv:Incident ; rv:category "Level crossing" ; rdfs:label "Barrier struck by car at 50/12" ;
+    rv:atAsset rd:lc-50-12 ; rv:date "2026-05-27"^^xsd:date ; rv:severity 1 .
+  rd:inc-2026-044 a rv:Incident ; rv:category "Switch failure" ; rdfs:label "Switch 3 Leuven failed to lock" ;
+    rv:atAsset rd:sw-leuven-3 ; rv:train rd:path-ic-2131 ; rv:date "2026-09-14"^^xsd:date ; rv:severity 3 ;
+    rv:involvedDriver rd:staff-sofie ; rv:driverStatement "Felt a strong lateral jolt passing the switch." .
+}
+
+# ---------------------------------------------------------------------------
+# Staff records. Personal data.
+# ---------------------------------------------------------------------------
+<https://example.org/rail/graph/staff> {
+  rd:staff-jan    a rv:Staff ; rdfs:label "Jan Peeters" ; rv:role "Track technician" ; rv:team rd:region-north ;
+    rv:account <urn:sparql-guard:user:jan> ; rv:email "jan.peeters@example.org" ; rv:salaryScale "B2" .
+  rd:staff-els    a rv:Staff ; rdfs:label "Els Dubois" ; rv:role "Signalling engineer" ; rv:team rd:region-south ;
+    rv:account <urn:sparql-guard:user:els> ; rv:email "els.dubois@example.org" ; rv:salaryScale "A1" .
+  rd:staff-pieter a rv:Staff ; rdfs:label "Pieter Claes" ; rv:role "Train driver" ; rv:team rd:region-north ;
+    rv:account <urn:sparql-guard:user:pieter> ; rv:email "pieter.claes@example.org" ; rv:salaryScale "B1" .
+  rd:staff-sofie  a rv:Staff ; rdfs:label "Sofie Maes" ; rv:role "Train driver" ; rv:team rd:region-south ;
+    rv:account <urn:sparql-guard:user:sofie> ; rv:email "sofie.maes@example.org" ; rv:salaryScale "B1" .
+}
