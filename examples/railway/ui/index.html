@@ -92,6 +92,14 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
       ['Total maintenance budget', 'SELECT (SUM(?cost) AS ?total) (COUNT(?order) AS ?orders) WHERE {\n  ?order a rv:WorkOrder ; rv:costEstimateEur ?cost .\n}'],
       ['Incidents', 'SELECT ?incident ?label ?severity ?driver ?statement WHERE {\n  ?incident a rv:Incident ; rdfs:label ?label ; rv:severity ?severity .\n  OPTIONAL { ?incident rv:involvedDriver/rdfs:label ?driver }\n  OPTIONAL { ?incident rv:driverStatement ?statement }\n}\nORDER BY DESC(?severity)'],
       ['Staff', 'SELECT ?person ?name ?role ?team ?scale WHERE {\n  ?person a rv:Staff ; rdfs:label ?name ; rv:role ?role ; rv:team/rdfs:label ?team .\n  OPTIONAL { ?person rv:salaryScale ?scale }\n}'],
+      ['Who confirmed what (SPARQL 1.2)', 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+SELECT ?subject ?property ?value ?confirmedBy WHERE {
+  ?claim rdf:reifies ?triple ;
+    rv:confirmedBy/rdfs:label ?confirmedBy .
+  BIND(SUBJECT(?triple) AS ?subject)
+  BIND(PREDICATE(?triple) AS ?property)
+  BIND(OBJECT(?triple) AS ?value)
+}'],
       ['DESCRIBE a level crossing', 'DESCRIBE rd:lc-50-12'],
       ['Refused: federated query', 'SELECT * WHERE {\n  SERVICE <https://query.wikidata.org/sparql> { ?s ?p ?o } \n} LIMIT 1'],
     ];

@@ -52,3 +52,22 @@ describe('railway playground roles', () => {
     expect(select('SELECT ?d WHERE { GRAPH ?g { ?i rv:involvedDriver ?d } }', user('admin', 'admin'), 'd')).toHaveLength(2);
   });
 });
+
+describe('railway playground with SPARQL 1.2 annotations', () => {
+  const h12 = new Harness(
+    PolicySet.fromFiles([examples('railway/policies.ttl')]),
+    readFileSync(examples('railway/data.trig'), 'utf8'),
+  );
+  h12.sparqlVersion = '1.2';
+  const CONFIRMED = `${PREFIXES} PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+    SELECT ?value WHERE { ?claim rdf:reifies ?t ; rv:confirmedBy ?who BIND(OBJECT(?t) AS ?value) }`;
+
+  it('reifiers do not reveal the hidden driver to safety analysts', () => {
+    expect(h12.select(CONFIRMED, user('investigator', 'safety'), 'value')).toEqual([]);
+  });
+
+  it('administrators see the annotated statements', () => {
+    expect(h12.select(CONFIRMED, user('admin', 'admin'), 'value'))
+      .toEqual(['https://example.org/rail/data/staff-pieter', 'https://example.org/rail/data/staff-sofie']);
+  });
+});

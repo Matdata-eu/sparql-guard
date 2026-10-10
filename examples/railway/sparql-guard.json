@@ -19,5 +19,6 @@
     "anonymous": true
   },
   "explain": true,
+  "sparqlVersion": "1.2",
   "watchPolicies": true
 }

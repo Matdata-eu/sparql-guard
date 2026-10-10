@@ -1,5 +1,6 @@
 # Fictional railway data for trying out sparql-guard.
 # Loosely modelled on the Belgian network; all names, people and figures are made up.
+# Uses RDF 1.2 reifiers and annotations ({| ... |}) on some incident statements.
 
 @prefix rv:   <https://example.org/rail/vocab#> .
 @prefix rd:   <https://example.org/rail/data/> .
@@ -99,12 +100,15 @@
 <https://example.org/rail/graph/incidents> {
   rd:inc-2026-017 a rv:Incident ; rv:category "SPAD" ; rdfs:label "Signal passed at danger at AX-214" ;
     rv:atAsset rd:sig-25-214 ; rv:train rd:path-fr-47110 ; rv:date "2026-03-02"^^xsd:date ; rv:severity 2 ;
-    rv:involvedDriver rd:staff-pieter ; rv:driverStatement "Signal aspect was hard to read in fog." .
+    rv:involvedDriver rd:staff-pieter ~ rd:inc-2026-017-id {| rv:confirmedBy rd:staff-jan ; rv:confirmedOn "2026-03-03"^^xsd:date |} ;
+    rv:driverStatement "Signal aspect was hard to read in fog." .
   rd:inc-2026-031 a rv:Incident ; rv:category "Level crossing" ; rdfs:label "Barrier struck by car at 50/12" ;
-    rv:atAsset rd:lc-50-12 ; rv:date "2026-05-27"^^xsd:date ; rv:severity 1 .
+    rv:atAsset rd:lc-50-12 ~ rd:inc-2026-031-loc {| rv:source "Police report" |} ;
+    rv:date "2026-05-27"^^xsd:date ; rv:severity 1 .
   rd:inc-2026-044 a rv:Incident ; rv:category "Switch failure" ; rdfs:label "Switch 3 Leuven failed to lock" ;
     rv:atAsset rd:sw-leuven-3 ; rv:train rd:path-ic-2131 ; rv:date "2026-09-14"^^xsd:date ; rv:severity 3 ;
-    rv:involvedDriver rd:staff-sofie ; rv:driverStatement "Felt a strong lateral jolt passing the switch." .
+    rv:involvedDriver rd:staff-sofie ~ rd:inc-2026-044-id {| rv:confirmedBy rd:staff-els ; rv:confirmedOn "2026-09-15"^^xsd:date |} ;
+    rv:driverStatement "Felt a strong lateral jolt passing the switch." .
 }
 
 # ---------------------------------------------------------------------------
