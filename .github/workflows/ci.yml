@@ -26,9 +26,3 @@ jobs:
       - run: npm run build
       - run: node dist/cli.js check --policies examples/policies.ttl
 
-  docker:
-    name: Docker image builds
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build -t sparql-guard:ci .
