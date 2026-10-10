@@ -15,6 +15,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/introduction' },
       { text: 'Reference', link: '/reference/policy-language' },
       { text: 'Playground', link: '/guide/playground' },
+      { text: 'Live demo', link: '/guide/demo' },
     ],
     sidebar: [
       {
@@ -22,6 +23,7 @@ export default defineConfig({
         items: [
           { text: 'What is sparql-guard?', link: '/guide/introduction' },
           { text: 'Getting started', link: '/guide/getting-started' },
+          { text: 'Live demo', link: '/guide/demo' },
           { text: 'Playground', link: '/guide/playground' },
           { text: 'How it works', link: '/guide/how-it-works' },
         ],

@@ -1,6 +1,6 @@
 # sparql-guard
 
-**Documentation: <https://matdata-eu.github.io/sparql-guard/>**
+**Documentation: <https://matdata-eu.github.io/sparql-guard/>** · **[Live demo](https://matdata-eu.github.io/sparql-guard/demo/)**
 
 A store-neutral access-control proxy for SPARQL endpoints.
 
