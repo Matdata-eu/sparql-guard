@@ -5,6 +5,14 @@ load balancer. It keeps no state besides the policies it reads from disk.
 
 ## Container image
 
+Pull the published image:
+
+```sh
+docker pull ghcr.io/matdata-eu/sparql-guard:latest
+```
+
+or build it yourself:
+
 ```sh
 docker build -t sparql-guard .
 ```
@@ -123,9 +131,11 @@ Kubernetes updates mounted ConfigMaps in place after a short delay. With
 does not load, the previous one stays active and the error is logged.
 :::
 
-::: info Image location
-The manifest assumes the image is published as `ghcr.io/matdata-eu/sparql-guard`. Until a
-release workflow publishes it, build and push the image to your own registry.
+::: info Image tags
+The Docker workflow publishes `ghcr.io/matdata-eu/sparql-guard` for `linux/amd64` and
+`linux/arm64`: `latest` and `main` follow the main branch, `1.2.3` and `1.2` are created from
+`v1.2.3` tags, and every build is also tagged `sha-<commit>`. Pin a version or a `sha-` tag in
+production.
 :::
 
 Restrict access to the store so that only the guard can query it:

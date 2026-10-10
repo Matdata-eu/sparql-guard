@@ -148,6 +148,15 @@ endpoint and keep the store itself unreachable for clients.
 
 ## Container
 
+Images for `linux/amd64` and `linux/arm64` are published to the GitHub Container Registry on
+every push to `main` (`latest`, `main`) and for every `v*` tag (`1.2.3`, `1.2`):
+
+```sh
+docker pull ghcr.io/matdata-eu/sparql-guard:latest
+```
+
+To build it yourself:
+
 ```sh
 docker build -t sparql-guard .
 docker run --rm -p 8080:8080 -v "$PWD/examples:/config:ro" \
