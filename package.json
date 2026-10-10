@@ -1,5 +1,5 @@
 {
-  "name": "sparql-guard",
+  "name": "@matdata/sparql-guard",
   "version": "0.1.0",
   "description": "Store-neutral access-control proxy for SPARQL endpoints: graph-level and row-level policies written in SHACL, enforced by query rewriting.",
   "license": "Apache-2.0",
@@ -33,6 +33,10 @@
     "docs:dev": "node scripts/prepare-demo-page.mjs && vitepress dev docs",
     "docs:build": "node scripts/prepare-demo-page.mjs && vitepress build docs",
     "docs:preview": "vitepress preview docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Matdata-eu/sparql-guard.git"
   },
   "dependencies": {
     "@traqula/algebra-sparql-1-1": "^1.4.0",
