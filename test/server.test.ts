@@ -99,6 +99,14 @@ describe('HTTP proxy', () => {
     expect(upstream.received.length).toBe(before);
   });
 
+  it('lets browsers read error responses (CORS)', async () => {
+    const res = await fetch(`${base}?query=${encodeURIComponent('SELECT * WHERE { SERVICE <http://x/> { ?s ?p ?o } }')}`, {
+      headers: { origin: 'https://example.github.io' },
+    });
+    expect(res.status).toBe(403);
+    expect(res.headers.get('access-control-allow-origin')).toBe('https://example.github.io');
+  });
+
   it('only ever sends rewritten queries upstream', async () => {
     await fetch(`${base}?query=${encodeURIComponent(QUERY)}`);
     expect(upstream.received.at(-1)).toContain('FROM <https://example.org/graph/public>');

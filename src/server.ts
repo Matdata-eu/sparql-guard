@@ -65,7 +65,8 @@ export function createGuardServer(config: Config, log: (line: string) => void = 
         error.status :
         502;
       if (!res.headersSent) {
-        res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8' });
+        // CORS headers on errors too, so browser clients can read why a query was refused.
+        res.writeHead(status, { 'content-type': 'text/plain; charset=utf-8', ...corsHeaders(req) });
         res.end(`${(error as Error).message}\n`);
       } else {
         res.destroy();
