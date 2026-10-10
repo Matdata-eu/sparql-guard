@@ -1,0 +1,48 @@
+@prefix ex:   <https://example.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# Readable by everyone.
+<https://example.org/graph/public> {
+  ex:acme a ex:Company ;
+    ex:name "ACME" .
+  ex:Manager rdfs:subClassOf ex:Employee .
+}
+
+# Personnel data.
+<https://example.org/graph/hr> {
+  ex:alice a ex:Employee ;
+    ex:name "Alice" ;
+    ex:department ex:Sales ;
+    ex:salary 5000 ;
+    ex:worksFor ex:acme ;
+    ex:reportsTo ex:bob .
+
+  ex:bob a ex:Manager ;
+    ex:name "Bob" ;
+    ex:department ex:Board ;
+    ex:salary 9000 ;
+    ex:worksFor ex:acme .
+
+  ex:carol a ex:Employee ;
+    ex:name "Carol" ;
+    ex:department ex:Sales ;
+    ex:salary 4000 ;
+    ex:worksFor ex:acme .
+
+  ex:review-alice a ex:Document ;
+    ex:title "Alice's yearly review" ;
+    ex:about ex:alice ;
+    ex:owner <urn:sparql-guard:user:alice> .
+
+  ex:review-carol a ex:Document ;
+    ex:title "Carol's yearly review" ;
+    ex:about ex:carol ;
+    ex:owner <urn:sparql-guard:user:carol> .
+}
+
+# Not granted to anyone but HR administrators.
+<https://example.org/graph/payroll> {
+  ex:run-2026-09 a ex:PayrollRun ;
+    ex:total 18000 .
+}

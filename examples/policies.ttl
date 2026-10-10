@@ -1,0 +1,50 @@
+@prefix sg:  <https://matdata.eu/ns/sparql-guard#> .
+@prefix sh:  <http://www.w3.org/ns/shacl#> .
+@prefix ex:  <https://example.org/> .
+@prefix pol: <https://example.org/policy/> .
+
+# ---------------------------------------------------------------------------
+# Graph-level: everyone, also anonymous users, may read the public graph.
+# ---------------------------------------------------------------------------
+pol:public a sg:Policy ;
+  sg:agent sg:Anyone ;
+  sg:readGraph <https://example.org/graph/public> .
+
+# ---------------------------------------------------------------------------
+# Row-level: the sales team reads personnel data, but
+#   - only sees employees of the sales department,
+#   - never sees salaries,
+#   - only sees the documents it owns.
+# ---------------------------------------------------------------------------
+pol:sales a sg:Policy ;
+  sg:group "sales" ;
+  sg:readGraph <https://example.org/graph/public>, <https://example.org/graph/hr> ;
+  sg:visibleIf pol:SalesEmployeesOnly, pol:OwnDocumentsOnly ;
+  sg:hideProperties pol:NoSalaries .
+
+# An employee (or a subclass, like ex:Manager) is visible only if it is in Sales.
+pol:SalesEmployeesOnly a sh:NodeShape ;
+  sh:targetClass ex:Employee ;
+  sh:property [
+    sh:path ex:department ;
+    sh:hasValue ex:Sales ;
+  ] .
+
+# A document is visible only to its owner. sg:requestingAgent is the agent sending the query.
+pol:OwnDocumentsOnly a sh:NodeShape ;
+  sh:targetClass ex:Document ;
+  sh:property [
+    sh:path ex:owner ;
+    sh:hasValue sg:requestingAgent ;
+  ] .
+
+pol:NoSalaries a sh:NodeShape ;
+  sh:targetClass ex:Employee ;
+  sh:property [ sh:path ex:salary ] .
+
+# ---------------------------------------------------------------------------
+# HR administrators read everything.
+# ---------------------------------------------------------------------------
+pol:hr-admins a sg:Policy ;
+  sg:group "hr-admins" ;
+  sg:readAllGraphs true .

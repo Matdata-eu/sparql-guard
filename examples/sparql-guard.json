@@ -1,0 +1,23 @@
+{
+  "upstream": "http://localhost:3030/ds/sparql",
+  "port": 8080,
+  "path": "/sparql",
+  "policies": ["policies.ttl"],
+  "auth": {
+    "apiKeys": [
+      {
+        "sha256": "0572c17ed012b3efdf9df98db1718f225887132739b8da945d81ac5a7d1fea45",
+        "agent": "urn:sparql-guard:user:alice",
+        "groups": ["sales"]
+      }
+    ],
+    "trustedHeaders": {
+      "agent": "x-forwarded-user",
+      "groups": "x-forwarded-groups",
+      "agentPrefix": "urn:sparql-guard:user:"
+    },
+    "anonymous": true
+  },
+  "explain": true,
+  "watchPolicies": true
+}
