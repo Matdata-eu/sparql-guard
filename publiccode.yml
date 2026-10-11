@@ -1,0 +1,53 @@
+publiccodeYmlVersion: '0'
+name: sparql-guard
+url: https://github.com/Matdata-eu/sparql-guard
+landingURL: https://matdata-eu.github.io/sparql-guard/
+softwareVersion: 1.0.0
+releaseDate: '2026-10-10'
+platforms:
+- linux
+- windows
+- mac
+categories:
+- it-security
+- identity-management
+- knowledge-management
+developmentStatus: stable
+softwareType: standalone/backend
+organisation:
+  uri: https://matdata.eu
+  name: Matdata
+intendedAudience:
+  scope:
+  - government
+  - science-and-technology
+  - infrastructures
+  - transportation
+description:
+  en:
+    shortDescription: Access-control proxy for any SPARQL endpoint, with graph- and row-level policies
+      in SHACL.
+    longDescription: |
+      Fine-grained access control for RDF usually lives inside a single triple store, each with its own model. sparql-guard sits in front of any SPARQL 1.1 endpoint instead.
+
+      It authenticates the caller, looks up the policies that apply and rewrites the query so it can only see what those policies allow, before forwarding it to the store. Graph-level policies decide which named graphs an agent or group may read; row-level policies are written in SHACL. Because it rewrites queries instead of filtering results, aggregates and subqueries stay correct. It fails closed on anything it does not support. This lets an administration share one knowledge graph with different audiences without changing its triple store.
+    documentation: https://matdata-eu.github.io/sparql-guard/
+    features:
+    - Graph-level access policies per agent or group
+    - Row-level policies written in SHACL
+    - Query rewriting, so aggregates stay correct
+    - Works with any SPARQL 1.1 endpoint
+    - SPARQL 1.2 support
+    - Fails closed on unsupported policies
+legal:
+  license: Apache-2.0
+  mainCopyrightOwner: Matdata
+maintenance:
+  type: internal
+  contacts:
+  - name: Mathias Vanden Auweele
+    affiliation: Matdata
+localisation:
+  localisationReady: false
+  availableLanguages:
+  - en
