@@ -7,8 +7,10 @@ sparql-guard check --policies <file.ttl>...
 sparql-guard hash-key <api-key>
 ```
 
-When built from source, run it as `node dist/cli.js …`. In the container image the entry
-point is the CLI, so `docker run sparql-guard check --policies /config/policies.ttl` works too.
+Install it with `npm install -g @matdata/sparql-guard`, or run it without installing as
+`npx @matdata/sparql-guard …`. From a source checkout, run `node dist/cli.js …` after
+`npm run build`. In the container image the entry point is the CLI, so
+`docker run ghcr.io/matdata-eu/sparql-guard check --policies /config/policies.ttl` works too.
 
 ## serve
 

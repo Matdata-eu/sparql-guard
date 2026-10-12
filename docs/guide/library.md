@@ -3,13 +3,12 @@
 The rewriter can be used without the HTTP server, for example inside an existing Node.js API
 or a custom gateway. The package exports everything from `src/index.ts`.
 
-::: info Not on npm yet
-Until the package is published, build it from source (`npm run build`) and depend on the
-local folder, e.g. `npm install ../sparql-guard`.
-:::
+```sh
+npm install @matdata/sparql-guard
+```
 
 ```ts
-import { PolicySet, rewriteQuery, AccessDenied, UnsupportedQuery } from 'sparql-guard';
+import { PolicySet, rewriteQuery, AccessDenied, UnsupportedQuery } from '@matdata/sparql-guard';
 
 // Load once; reload when the files change.
 const policies = PolicySet.fromFiles(['policies.ttl']);
@@ -73,7 +72,7 @@ Creates the HTTP server without starting it. Returns `{ server, reload, close }`
 `server.listen(port)` yourself.
 
 ```ts
-import { createGuardServer, loadConfig } from 'sparql-guard';
+import { createGuardServer, loadConfig } from '@matdata/sparql-guard';
 
 const guard = createGuardServer(loadConfig('sparql-guard.json'));
 guard.server.listen(8080);

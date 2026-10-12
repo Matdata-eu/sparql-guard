@@ -59,16 +59,17 @@ changed with `SG_UI_PORT` and `SG_STORE_PORT`.
 ## Quick start
 
 ```sh
-npm install
-npm run build
+npm install -g @matdata/sparql-guard
 
 # See what a query becomes for a member of the "sales" group:
-node dist/cli.js rewrite --policies examples/policies.ttl \
+sparql-guard rewrite --policies examples/policies.ttl \
   --agent urn:sparql-guard:user:alice --group sales query.rq
 
 # Run the proxy (edit "upstream" in the config first):
-node dist/cli.js serve --config examples/sparql-guard.json
+sparql-guard serve --config examples/sparql-guard.json
 ```
+
+The package also works as a library: `import { PolicySet, rewriteQuery } from '@matdata/sparql-guard'`.
 
 Then query `http://localhost:8080/sparql` with any SPARQL client, using the standard
 SPARQL 1.1 Protocol (GET, POST form, or POST `application/sparql-query`).
@@ -160,7 +161,7 @@ To build it yourself:
 ```sh
 docker build -t sparql-guard .
 docker run --rm -p 8080:8080 -v "$PWD/examples:/config:ro" \
-  -e SPARQL_GUARD_UPSTREAM=http://my-store:3030/ds/sparql sparql-guard
+  -e SPARQL_GUARD_UPSTREAM=http://my-store:3030/ds/sparql ghcr.io/matdata-eu/sparql-guard:latest
 ```
 
 The image expects `/config/sparql-guard.json` (override with `SPARQL_GUARD_CONFIG`). On

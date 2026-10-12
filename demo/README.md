@@ -4,7 +4,7 @@ The stack behind the [online demo](https://matdata-eu.github.io/sparql-guard/dem
 example data in Oxigraph, behind sparql-guard, with a static page to pick a user and run queries.
 
 ```sh
-docker compose up -d --build
+docker compose up -d
 ```
 
 - <http://localhost:8096/sparql>: the guarded endpoint

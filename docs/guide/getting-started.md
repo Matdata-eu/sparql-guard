@@ -9,21 +9,21 @@ want to see it work, start with the [playground](./playground) instead.
 - A SPARQL 1.1 query endpoint, for example `http://localhost:3030/ds/sparql`.
 - Your data in **named graphs** if you want graph-level policies.
 
-## 1. Build
+## 1. Install
 
-sparql-guard is not on npm yet, so build it from source:
+Install the command line tool from npm:
 
 ```sh
-git clone https://github.com/Matdata-eu/sparql-guard.git
-cd sparql-guard
-npm install
-npm run build
+npm install -g @matdata/sparql-guard
 ```
 
-Or build the container image:
+This gives you the `sparql-guard` command. To try it without installing, prefix the commands
+on this page with `npx @matdata/sparql-guard` instead of `sparql-guard`.
+
+Or use the container image, for `linux/amd64` and `linux/arm64`:
 
 ```sh
-docker build -t sparql-guard .
+docker pull ghcr.io/matdata-eu/sparql-guard:latest
 ```
 
 ## 2. Write a first policy
@@ -43,7 +43,7 @@ ex:public a sg:Policy ;
 Check that it loads:
 
 ```sh
-node dist/cli.js check --policies policies.ttl
+sparql-guard check --policies policies.ttl
 ```
 
 ```text
@@ -56,7 +56,7 @@ Before running a server, look at what a query turns into:
 
 ```sh
 echo 'SELECT * WHERE { ?s ?p ?o } LIMIT 10' > query.rq
-node dist/cli.js rewrite --policies policies.ttl query.rq
+sparql-guard rewrite --policies policies.ttl query.rq
 ```
 
 ```sparql
@@ -87,13 +87,13 @@ All options are listed in the [configuration reference](../reference/configurati
 ## 5. Run it
 
 ```sh
-node dist/cli.js serve --config sparql-guard.json
+sparql-guard serve --config sparql-guard.json
 ```
 
 or with Docker, mounting the folder that holds both files:
 
 ```sh
-docker run --rm -p 8080:8080 -v "$PWD:/config:ro" sparql-guard
+docker run --rm -p 8080:8080 -v "$PWD:/config:ro" ghcr.io/matdata-eu/sparql-guard:latest
 ```
 
 ```text

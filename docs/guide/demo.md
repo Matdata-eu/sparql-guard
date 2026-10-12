@@ -40,7 +40,7 @@ The demo stack lives in [`demo/`](https://github.com/Matdata-eu/sparql-guard/tre
 
 ```sh
 cd demo
-docker compose up -d --build
+docker compose up -d
 ```
 
 | URL | What |
@@ -92,7 +92,7 @@ server {
 ```
 
 The `page` service is only for trying the page locally; on the server you can drop it with
-`docker compose up -d --build store-load store guard`.
+`docker compose up -d store-load store guard`.
 
 Things to keep in mind for a public endpoint:
 

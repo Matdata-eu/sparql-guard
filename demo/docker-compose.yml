@@ -1,7 +1,9 @@
 # Public demo of sparql-guard: the railway example data behind the proxy.
 #
 #   cd demo
-#   docker compose up -d --build
+#   docker compose up -d
+#
+# This pulls the published image. To run local changes instead: docker compose up -d --build
 #
 #   http://localhost:8096/sparql   the guarded endpoint (put this behind your reverse proxy,
 #                                  e.g. as https://sparql-guard.matdata.eu/sparql)
@@ -34,6 +36,7 @@ services:
         condition: service_completed_successfully
 
   guard:
+    image: ghcr.io/matdata-eu/sparql-guard:latest
     build: ..
     environment:
       SPARQL_GUARD_CONFIG: /config/sparql-guard.json

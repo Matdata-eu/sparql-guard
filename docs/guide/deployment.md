@@ -31,7 +31,7 @@ layout is one folder:
 ```sh
 docker run -p 8080:8080 -v "$PWD/config:/config:ro" \
   -e SPARQL_GUARD_UPSTREAM=http://store:3030/ds/sparql \
-  sparql-guard
+  ghcr.io/matdata-eu/sparql-guard:latest
 ```
 
 | Variable | Effect |
@@ -52,7 +52,7 @@ services:
     # No published port: only the guard can reach the store.
 
   guard:
-    image: sparql-guard
+    image: ghcr.io/matdata-eu/sparql-guard:latest
     environment:
       SPARQL_GUARD_UPSTREAM: http://store:3030/ds/sparql
     volumes:

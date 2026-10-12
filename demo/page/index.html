@@ -405,7 +405,7 @@ LIMIT 1` },
 
     function networkError(error) {
       const div = document.createElement('div'); div.className = 'error';
-      div.textContent = `Could not reach ${endpoint()}.\n${error.message}\n\nIs the demo endpoint running? Locally: cd demo && docker compose up -d --build`;
+      div.textContent = `Could not reach ${endpoint()}.\n${error.message}\n\nIs the demo endpoint running? Locally: cd demo && docker compose up -d`;
       return div;
     }
 
